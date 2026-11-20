@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#ece3cd;--card:rgba(255,251,240,.78);--ink:#2b2438;--mute:#6f6679;--orange:#cd5c33;--yellow:#e8a317;--green:#146c54;--blue:#1f5bd6;--red:#e8453c;--accent:var(--blue);--line:rgba(43,36,56,.18)}
-body[data-dept=Hardware]{--accent:var(--orange)}
+body[data-dept=Hardware]{--accent:var(--orange)}body[data-dept=Mechanical]{--accent:var(--green)}body[data-dept=Sessions]{--accent:#a66d00}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{font-family:Nunito,system-ui,sans-serif;color:var(--ink);min-height:100vh;line-height:1.5;
@@ -66,7 +66,7 @@ header.top h1{font-size:clamp(1.5rem,3.5vw,2.3rem)}
 .depts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
 .depts button{border:2px solid var(--ink);border-radius:14px;padding:10px 22px;font-family:'Lilita One';font-size:1.15rem;cursor:pointer;background:#fffdf6;box-shadow:3px 3px 0 var(--ink)}
 .depts button[data-d=Software][aria-pressed=true]{background:var(--blue);color:#fff}
-.depts button[data-d=Hardware][aria-pressed=true]{background:var(--orange);color:#fff}
+.depts button[data-d=Hardware][aria-pressed=true]{background:var(--orange);color:#fff}.depts button[data-d=Mechanical][aria-pressed=true]{background:var(--green);color:#fff}.depts button[data-d=Sessions][aria-pressed=true]{background:var(--yellow);color:var(--ink)}a.btn{text-decoration:none;display:inline-block}
 .depts button[aria-pressed=true]{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px}
 .stat{background:var(--card);border:2px solid var(--ink);border-radius:16px;padding:12px 16px;border-left:10px solid var(--c)}
@@ -117,16 +117,12 @@ dialog h2{margin-bottom:14px}
       <span class="badge rob"><img src="assets/robotics-logo.png" alt="Robotics" onload="this.parentNode.classList.add('img')" onerror="this.remove()"><b>ROBOTICS</b></span>
     </div>
     <h1>Welcome back</h1>
-    <p class="sub">Sign in to see your Software or Hardware track.</p>
-    <div class="seg" role="group" aria-label="Sign in as">
-      <button type="button" data-role="student" aria-pressed="true">Student</button>
-      <button type="button" data-role="instructor" aria-pressed="false">Instructor</button>
-    </div>
+    <p class="sub">Sign in to see your tracks and lecture sessions.</p>
     <label class="field">Username<input id="u" required autocomplete="username"></label>
     <label class="field">Password<input id="p" type="password" required autocomplete="current-password"></label>
     <p class="err" id="loginErr" role="alert"></p>
     <button class="btn" style="width:100%" id="loginBtn">Sign in</button>
-    <div class="demo-note" id="demoNote" hidden><b>Demo mode</b> (no Google Sheet connected). Try <code>ahmed</code> / <code>stud123</code> (student) or <code>sara</code> / <code>inst123</code> (instructor). Everyone has a Software tab and a Hardware tab.</div>
+    <div class="demo-note" id="demoNote" hidden><b>Demo mode</b> (no Google Sheet connected). Try <code>ahmed</code> / <code>stud123</code> (student) or <code>sara</code> / <code>inst123</code> (instructor). Everyone has Software, Hardware and Mechanical tabs plus Sessions.</div>
   </form>
 </main>
 
@@ -140,13 +136,14 @@ dialog h2{margin-bottom:14px}
   </header>
   <nav class="depts" id="depts" aria-label="Department"></nav>
   <section class="stats" id="stats" aria-live="polite"></section>
-  <div class="grid">
+  <div class="grid" id="grid">
     <section class="panel" id="tasksPanel"></section>
     <div class="col">
       <section class="panel" id="annPanel"></section>
       <section class="panel" id="fbPanel"></section>
     </div>
   </div>
+  <section class="panel" id="sessPanel" hidden></section>
   <div class="dots" aria-hidden="true"></div>
   <svg class="arcs" viewBox="0 0 150 150" fill="none" stroke="#146c54" stroke-width="3" aria-hidden="true"><circle cx="150" cy="150" r="60"/><circle cx="150" cy="150" r="85"/><circle cx="150" cy="150" r="110"/><circle cx="150" cy="150" r="135"/></svg>
 </div>
@@ -163,7 +160,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const iso=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 const today=()=>iso(0);
-const DEPTS=['Software','Hardware'];
+const DEPTS=['Software','Hardware','Mechanical'];
 const deptsOf=()=>DEPTS; /* everyone studies and teaches both departments */
 const STATUSES=['To do','In progress','Done'];
 const fmt=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}catch(e){return d}};
@@ -193,25 +190,34 @@ const Demo={
         {id:'t3',department:'Software',title:'Git workflow practice',description:'Create a repo, make three commits, and open a pull request.',deadline:iso(-2)},
         {id:'t4',department:'Hardware',title:'Blink an LED with Arduino',description:'Wire an LED and resistor, then write a sketch that blinks it every 500 ms.',deadline:iso(3)},
         {id:'t5',department:'Hardware',title:'Read a temperature sensor',description:'Connect a DHT11 sensor and print readings to the serial monitor.',deadline:iso(9)},
-        {id:'t6',department:'Hardware',title:'Servo sweep',description:'Control a servo motor with a potentiometer.',deadline:iso(-1)}],
-      progress:[{taskId:'t1',studentId:'s1',status:'In progress'},{taskId:'t3',studentId:'s1',status:'Done'},{taskId:'t4',studentId:'s1',status:'In progress'},{taskId:'t1',studentId:'s2',status:'Done'},{taskId:'t4',studentId:'s2',status:'Done'},{taskId:'t6',studentId:'s2',status:'In progress'},{taskId:'t2',studentId:'s3',status:'In progress'},{taskId:'t5',studentId:'s3',status:'Done'}],
+        {id:'t6',department:'Hardware',title:'Servo sweep',description:'Control a servo motor with a potentiometer.',deadline:iso(-1)},
+        {id:'t7',department:'Mechanical',title:'Sketch a gear in CAD',description:'Model a simple spur gear with 20 teeth and export it as STEP.',deadline:iso(6)},
+        {id:'t8',department:'Mechanical',title:'Choose materials',description:'Compare aluminium and PLA for a robot chassis and explain your choice.',deadline:iso(12)}],
+      progress:[{taskId:'t1',studentId:'s1',status:'In progress'},{taskId:'t3',studentId:'s1',status:'Done'},{taskId:'t4',studentId:'s1',status:'In progress'},{taskId:'t1',studentId:'s2',status:'Done'},{taskId:'t4',studentId:'s2',status:'Done'},{taskId:'t6',studentId:'s2',status:'In progress'},{taskId:'t2',studentId:'s3',status:'In progress'},{taskId:'t5',studentId:'s3',status:'Done'},{taskId:'t7',studentId:'s1',status:'In progress'}],
       feedback:[
         {id:'f1',department:'Software',taskId:'t3',studentId:'s1',text:'Clean commit messages. Next time, make smaller commits.',date:iso(-1),author:'Eng. Sara Hassan'},
         {id:'f2',department:'Hardware',taskId:'t4',studentId:'s2',text:'Great wiring! Add a comment to each pin definition in your sketch.',date:iso(-1),author:'Eng. Omar Nabil'},
-        {id:'f3',department:'Software',taskId:'t1',studentId:'s3',text:'Excellent layout on mobile. Please add error messages for empty fields.',date:iso(-2),author:'Eng. Sara Hassan'}],
+        {id:'f3',department:'Software',taskId:'t1',studentId:'s3',text:'Excellent layout on mobile. Please add error messages for empty fields.',date:iso(-2),author:'Eng. Sara Hassan'},
+        {id:'f4',department:'Mechanical',taskId:'t7',studentId:'s1',text:'Good start. Check the pressure angle before exporting.',date:iso(-1),author:'Eng. Omar Nabil'}],
       announcements:[
         {id:'a1',department:'Software',title:'Weekly meetup on Thursday',body:'Bring your laptop. We will review the login page tasks together.',date:iso(-1),author:'Eng. Sara Hassan'},
         {id:'a2',department:'Software',title:'Git cheat sheet',body:'A short Git guide is now in the shared drive.',date:iso(-4),author:'Eng. Sara Hassan'},
         {id:'a3',department:'Hardware',title:'Lab kits available',body:'Pick up your Arduino kit from the lab before Wednesday.',date:iso(-1),author:'Eng. Omar Nabil'},
-        {id:'a4',department:'Hardware',title:'Safety first',body:'Always unplug the board before changing wires.',date:iso(-5),author:'Eng. Omar Nabil'}]};
+        {id:'a4',department:'Hardware',title:'Safety first',body:'Always unplug the board before changing wires.',date:iso(-5),author:'Eng. Omar Nabil'},
+        {id:'a5',department:'Mechanical',title:'CAD software install',description:'',body:'Install the CAD software before the next session.',date:iso(-1),author:'Eng. Omar Nabil'}],
+      sessions:[
+        {id:'x1',track:'General',title:'Welcome session (recording)',link:'https://example.com/welcome',date:iso(-6),author:'Eng. Sara Hassan'},
+        {id:'x2',track:'Software',title:'HTML & CSS basics',link:'https://example.com/html-css',date:iso(2),author:'Eng. Sara Hassan'},
+        {id:'x3',track:'Hardware',title:'Arduino basics',link:'https://example.com/arduino',date:iso(-3),author:'Eng. Omar Nabil'},
+        {id:'x4',track:'Mechanical',title:'CAD fundamentals',link:'https://example.com/cad',date:iso(5),author:'Eng. Omar Nabil'}]};
   },
-  load(){try{const v=JSON.parse(localStorage.getItem('gdg_demo_db2'));if(v)return v}catch(e){}const s=this.seed();this.save(s);return s},
-  save(db){try{localStorage.setItem('gdg_demo_db2',JSON.stringify(db))}catch(e){}},
+  load(){try{const v=JSON.parse(localStorage.getItem('gdg_demo_db3'));if(v)return v}catch(e){}const s=this.seed();this.save(s);return s},
+  save(db){try{localStorage.setItem('gdg_demo_db3',JSON.stringify(db))}catch(e){}},
   handle(b){
     const db=this.load(),id=()=>Math.random().toString(36).slice(2,9),pub=u=>({id:u.id,name:u.name,role:u.role});
     if(b.action==='login'){
-      const u=db.users.find(x=>x.username===String(b.username).trim().toLowerCase()&&x.password===b.password&&x.role===b.role);
-      if(!u)throw new Error('Wrong username, password, or role.');
+      const u=db.users.find(x=>x.username===String(b.username).trim().toLowerCase()&&x.password===b.password);
+      if(!u)throw new Error('Wrong username or password.');
       return{token:u.id,user:pub(u)};
     }
     const u=db.users.find(x=>x.id===b.token);if(!u)throw new Error('SESSION');
@@ -221,7 +227,7 @@ const Demo={
       case'getAll':{
         const tasks=db.tasks.filter(t=>D.includes(t.department));
         const ids=tasks.map(t=>t.id);
-        out={tasks,announcements:db.announcements.filter(a=>D.includes(a.department)),
+        out={tasks,sessions:db.sessions,announcements:db.announcements.filter(a=>D.includes(a.department)),
           feedback:db.feedback.filter(f=>D.includes(f.department)&&(ins||f.studentId===u.id)),
           progress:db.progress.filter(p=>ids.includes(p.taskId)&&(ins||p.studentId===u.id)),
           students:ins?db.users.filter(x=>x.role==='student').map(x=>({id:x.id,name:x.name})):[]};
@@ -235,6 +241,10 @@ const Demo={
       case'deleteAnnouncement':need();{const a=db.announcements.find(x=>x.id===b.id);if(a)allow(a.department);db.announcements=db.announcements.filter(x=>x.id!==b.id)}break;
       case'addFeedback':need();{const t=db.tasks.find(x=>x.id===b.taskId);if(!t)throw new Error('Task not found.');allow(t.department);
         db.feedback.push({id:id(),department:t.department,taskId:t.id,studentId:b.studentId,text:b.text,date:today(),author:u.name})}break;
+      case'addSession':need();if(!/^https?:\/\//i.test(String(b.link)))throw new Error('Link must start with http:// or https://');
+        if(![...D,'General'].includes(b.track))throw new Error('Bad track.');
+        db.sessions.push({id:id(),track:b.track,title:b.title,link:b.link,date:b.date,author:u.name});break;
+      case'deleteSession':need();db.sessions=db.sessions.filter(x=>x.id!==b.id);break;
       default:throw new Error('Unknown action.');
     }
     this.save(db);return true;
@@ -242,13 +252,11 @@ const Demo={
 };
 
 /* ===== session + login ===== */
-let loginRole='student';
-document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{loginRole=b.dataset.role;document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b))});
 $('#demoNote').hidden=!!CONFIG.API_URL;
 $('#loginForm').onsubmit=async e=>{
   e.preventDefault();$('#loginErr').textContent='';$('#loginBtn').disabled=true;
   try{
-    const r=await api('login',{username:$('#u').value.trim().toLowerCase(),password:$('#p').value,role:loginRole});
+    const r=await api('login',{username:$('#u').value.trim().toLowerCase(),password:$('#p').value});
     S.token=r.token;S.user=r.user;try{sessionStorage.setItem('gdg_session',JSON.stringify(r))}catch(e){}
     await enter();
   }catch(err){$('#loginErr').textContent=err.message}
@@ -287,9 +295,12 @@ const name=id=>(S.data.students.find(s=>s.id===id)||{}).name||'Student';
 function render(){
   const D=deptsOf(me()),d=S.dept,data=S.data;
   document.body.dataset.dept=d;
-  $('#pageTitle').textContent=`${d} Department`;
-  $('#depts').innerHTML=D.map(x=>`<button data-d="${x}" aria-pressed="${x===d}">${x}</button>`).join('');
+  const sess=d==='Sessions';
+  $('#pageTitle').textContent=sess?'Sessions':`${d} Department`;
+  $('#grid').hidden=sess;$('#sessPanel').hidden=!sess;
+  $('#depts').innerHTML=[...D,'Sessions'].map(x=>`<button data-d="${x}" aria-pressed="${x===d}">${x}</button>`).join('');
   $('#depts').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.dept=b.dataset.d;render()});
+  if(sess){renderSessions();return}
   const tasks=data.tasks.filter(t=>t.department===d).sort((a,b)=>a.deadline.localeCompare(b.deadline));
   const ann=data.announcements.filter(a=>a.department===d).sort((a,b)=>b.date.localeCompare(a.date));
   const fb=data.feedback.filter(f=>f.department===d).sort((a,b)=>b.date.localeCompare(a.date));
@@ -336,6 +347,16 @@ function bind(tasks,studs){
   const aa=$('#addAnn');if(aa)aa.onclick=()=>form(`New ${S.dept} announcement`,[{n:'title',l:'Title'},{n:'body',l:'Message',t:'textarea'}],v=>act('addAnnouncement',{department:S.dept,...v},'Announcement posted'));
 }
 
+/* ===== sessions tab (lecture links) ===== */
+function renderSessions(){
+  const list=[...S.data.sessions].sort((a,b)=>b.date.localeCompare(a.date)),up=list.filter(x=>x.date>=today()).length;
+  $('#stats').innerHTML=[[list.length,'Sessions','--blue'],[up,'Upcoming','--green']].map(([n,l,c])=>`<div class="stat" style="--c:var(${c})"><b>${n}</b><span>${l}</span></div>`).join('');
+  $('#sessPanel').innerHTML=`<header><h2>Lecture sessions</h2>${isIns()?'<button class="btn sm" id="addSess">+ Add session</button>':''}</header>`+
+    (list.map(x=>`<article class="item"><h3>${esc(x.title)}</h3><div class="meta"><span class="chip">${esc(x.track)}</span><span>${fmt(x.date)}</span><span>${esc(x.author)}</span></div><div class="acts">${/^https?:\/\//i.test(x.link)?`<a class="btn sm" href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">Open lecture link</a>`:''}${isIns()?`<button class="btn sm danger" data-delsess="${x.id}">Delete</button>`:''}</div></article>`).join('')||'<div class="empty">No sessions yet.</div>');
+  document.querySelectorAll('[data-delsess]').forEach(b=>b.onclick=()=>{if(confirm('Delete this session?'))act('deleteSession',{id:b.dataset.delsess},'Session deleted')});
+  const a=$('#addSess');if(a)a.onclick=()=>form('New session',[{n:'title',l:'Title'},{n:'track',l:'Track',t:'select',o:[...DEPTS,'General'].map(x=>[x,x])},{n:'date',l:'Date',t:'date',v:iso(1)},{n:'link',l:'Lecture link (https://...)',t:'url'}],v=>act('addSession',v,'Session added'));
+}
+
 /* ===== reusable modal form ===== */
 function form(title,fields,onSubmit){
   $('#dlgTitle').textContent=title;$('#dlgErr').textContent='';
@@ -353,4 +374,3 @@ c.innerHTML=Array.from({length:9},(_,i)=>`<i style="left:${i*11}%;top:${(i*17)%4
 </script>
 </body>
 </html>
-
