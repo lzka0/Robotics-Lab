@@ -163,6 +163,12 @@ const today=()=>iso(0);
 const DEPTS=['Software','Hardware','Mechanical'];
 const deptsOf=()=>DEPTS; /* everyone studies and teaches both departments */
 const STATUSES=['To do','In progress','Done'];
+/* task links: one per line, up to 10 */
+const linkList=s=>String(s||'').split(/\s+/).filter(Boolean);
+const okLink=u=>/^https?:\/\//i.test(u);
+const parseLinks=v=>{const l=linkList(v);if(l.length>10)throw new Error('Maximum 10 links per task.');if(!l.every(okLink))throw new Error('Each link must start with http:// or https://');return l.join('\n')};
+const host=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return 'Link'}};
+const linksHtml=s=>{const l=linkList(s).filter(okLink);return l.length?`<div class="acts">${l.map(u=>`<a class="btn ghost sm" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(host(u))} &#8599;</a>`).join('')}</div>`:''};
 const fmt=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}catch(e){return d}};
 let S={token:null,user:null,dept:null,data:null,sig:''};
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;t.setAttribute('role','status');document.body.append(t);setTimeout(()=>t.remove(),2600)}
@@ -185,10 +191,10 @@ const Demo={
       users:[U('i1','Eng. Sara Hassan','instructor','sara','inst123'),U('i2','Eng. Omar Nabil','instructor','omar','inst123'),
         U('s1','Ahmed Samir','student','ahmed','stud123'),U('s2','Mona Adel','student','mona','stud123'),U('s3','Laila Yasser','student','laila','stud123')],
       tasks:[
-        {id:'t1',department:'Software',title:'Build a login page',description:'Create a responsive login form with HTML and CSS, then validate inputs with JavaScript.',deadline:iso(4)},
+        {id:'t1',department:'Software',title:'Build a login page',links:'https://developer.mozilla.org/en-US/docs/Learn\nhttps://example.com/login-template',description:'Create a responsive login form with HTML and CSS, then validate inputs with JavaScript.',deadline:iso(4)},
         {id:'t2',department:'Software',title:'REST API basics',description:'Fetch data from a public API and render it as a list of cards.',deadline:iso(10)},
         {id:'t3',department:'Software',title:'Git workflow practice',description:'Create a repo, make three commits, and open a pull request.',deadline:iso(-2)},
-        {id:'t4',department:'Hardware',title:'Blink an LED with Arduino',description:'Wire an LED and resistor, then write a sketch that blinks it every 500 ms.',deadline:iso(3)},
+        {id:'t4',department:'Hardware',title:'Blink an LED with Arduino',links:'https://docs.arduino.cc/learn/',description:'Wire an LED and resistor, then write a sketch that blinks it every 500 ms.',deadline:iso(3)},
         {id:'t5',department:'Hardware',title:'Read a temperature sensor',description:'Connect a DHT11 sensor and print readings to the serial monitor.',deadline:iso(9)},
         {id:'t6',department:'Hardware',title:'Servo sweep',description:'Control a servo motor with a potentiometer.',deadline:iso(-1)},
         {id:'t7',department:'Mechanical',title:'Sketch a gear in CAD',description:'Model a simple spur gear with 20 teeth and export it as STEP.',deadline:iso(6)},
@@ -211,8 +217,8 @@ const Demo={
         {id:'x3',track:'Hardware',title:'Arduino basics',link:'https://example.com/arduino',date:iso(-3),author:'Eng. Omar Nabil'},
         {id:'x4',track:'Mechanical',title:'CAD fundamentals',link:'https://example.com/cad',date:iso(5),author:'Eng. Omar Nabil'}]};
   },
-  load(){try{const v=JSON.parse(localStorage.getItem('gdg_demo_db3'));if(v)return v}catch(e){}const s=this.seed();this.save(s);return s},
-  save(db){try{localStorage.setItem('gdg_demo_db3',JSON.stringify(db))}catch(e){}},
+  load(){try{const v=JSON.parse(localStorage.getItem('gdg_demo_db4'));if(v)return v}catch(e){}const s=this.seed();this.save(s);return s},
+  save(db){try{localStorage.setItem('gdg_demo_db4',JSON.stringify(db))}catch(e){}},
   handle(b){
     const db=this.load(),id=()=>Math.random().toString(36).slice(2,9),pub=u=>({id:u.id,name:u.name,role:u.role});
     if(b.action==='login'){
@@ -232,7 +238,7 @@ const Demo={
           progress:db.progress.filter(p=>ids.includes(p.taskId)&&(ins||p.studentId===u.id)),
           students:ins?db.users.filter(x=>x.role==='student').map(x=>({id:x.id,name:x.name})):[]};
         return JSON.parse(JSON.stringify(out));}
-      case'saveTask':need();allow(b.department);db.tasks.push({id:id(),department:b.department,title:b.title,description:b.description,deadline:b.deadline});break;
+      case'saveTask':need();allow(b.department);db.tasks.push({id:id(),department:b.department,title:b.title,description:b.description,deadline:b.deadline,links:parseLinks(b.links)});break;
       case'deleteTask':need();{const t=db.tasks.find(x=>x.id===b.id);if(t)allow(t.department);db.tasks=db.tasks.filter(x=>x.id!==b.id);db.progress=db.progress.filter(p=>p.taskId!==b.id);db.feedback=db.feedback.filter(f=>f.taskId!==b.id)}break;
       case'setProgress':{if(ins)throw new Error('Students only.');if(!STATUSES.includes(b.status))throw new Error('Bad status.');
         const t=db.tasks.find(x=>x.id===b.taskId);if(!t)throw new Error('Task not found.');allow(t.department);
@@ -317,13 +323,13 @@ function render(){
       const late=t.deadline<today();
       if(isIns()){
         const done=studs.filter(s=>stat(t.id,s.id)==='Done').length,pct=studs.length?Math.round(done/studs.length*100):0;
-        return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late?'late':''}">Due ${fmt(t.deadline)}</span></div><p>${esc(t.description)}</p>
+        return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late?'late':''}">Due ${fmt(t.deadline)}</span></div><p>${esc(t.description)}</p>${linksHtml(t.links)}
         <div class="meta">${done} of ${studs.length} students done</div><div class="bar"><i style="width:${pct}%"></i></div>
         <details><summary class="meta" style="cursor:pointer">Student progress</summary>${studs.map(s=>`<div class="meta">${esc(s.name)}: <span class="chip ${chipFor(stat(t.id,s.id))}">${stat(t.id,s.id)}</span></div>`).join('')||'<div class="meta">No students yet.</div>'}</details>
         <div class="acts"><button class="btn sm" data-fb="${t.id}">Give feedback</button><button class="btn sm danger" data-deltask="${t.id}">Delete</button></div></article>`;
       }
       const st=stat(t.id,me().id);
-      return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late&&st!=='Done'?'late':''}">Due ${fmt(t.deadline)}</span><span class="chip ${chipFor(st)}">${st}</span></div><p>${esc(t.description)}</p>
+      return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late&&st!=='Done'?'late':''}">Due ${fmt(t.deadline)}</span><span class="chip ${chipFor(st)}">${st}</span></div><p>${esc(t.description)}</p>${linksHtml(t.links)}
       <div class="status" role="group" aria-label="Progress for ${esc(t.title)}">${STATUSES.map(x=>`<button data-prog="${t.id}" data-s="${x}" aria-pressed="${x===st}">${x}</button>`).join('')}</div></article>`;
     }).join('')||`<div class="empty">${isIns()?'No tasks yet. Add the first one.':'No tasks assigned yet.'}</div>`);
   /* announcements */
@@ -343,7 +349,7 @@ function bind(tasks,studs){
     if(!studs.length)return toast('No students in this department yet.');
     form('Give feedback',[{n:'studentId',l:'Student',t:'select',o:studs.map(s=>[s.id,s.name])},{n:'text',l:'Feedback',t:'textarea'}],v=>act('addFeedback',{taskId:b.dataset.fb,...v},'Feedback sent'));
   });
-  const at=$('#addTask');if(at)at.onclick=()=>form(`New ${S.dept} task`,[{n:'title',l:'Title'},{n:'description',l:'Description',t:'textarea'},{n:'deadline',l:'Deadline',t:'date',v:iso(7)}],v=>act('saveTask',{department:S.dept,...v},'Task published'));
+  const at=$('#addTask');if(at)at.onclick=()=>form(`New ${S.dept} task`,[{n:'title',l:'Title'},{n:'description',l:'Description',t:'textarea'},{n:'deadline',l:'Deadline',t:'date',v:iso(7)},{n:'links',l:'Task links (optional, one per line)',t:'textarea',req:false}],v=>act('saveTask',{department:S.dept,...v},'Task published'));
   const aa=$('#addAnn');if(aa)aa.onclick=()=>form(`New ${S.dept} announcement`,[{n:'title',l:'Title'},{n:'body',l:'Message',t:'textarea'}],v=>act('addAnnouncement',{department:S.dept,...v},'Announcement posted'));
 }
 
@@ -360,7 +366,7 @@ function renderSessions(){
 /* ===== reusable modal form ===== */
 function form(title,fields,onSubmit){
   $('#dlgTitle').textContent=title;$('#dlgErr').textContent='';
-  $('#dlgFields').innerHTML=fields.map(f=>`<label class="field">${f.l}${f.t==='textarea'?`<textarea name="${f.n}" required></textarea>`:f.t==='select'?`<select name="${f.n}" required>${f.o.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select>`:`<input name="${f.n}" type="${f.t||'text'}" value="${esc(f.v||'')}" required>`}</label>`).join('');
+  $('#dlgFields').innerHTML=fields.map(f=>`<label class="field">${f.l}${f.t==='textarea'?`<textarea name="${f.n}" ${f.req===false?'':'required'}></textarea>`:f.t==='select'?`<select name="${f.n}" required>${f.o.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select>`:`<input name="${f.n}" type="${f.t||'text'}" value="${esc(f.v||'')}" required>`}</label>`).join('');
   const dlg=$('#dlg');
   $('#dlgCancel').onclick=()=>{dlg.close();refresh(true)};
   $('#dlgForm').onsubmit=e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.target));for(const k in v)if(typeof v[k]==='string')v[k]=v[k].trim();dlg.close();onSubmit(v)};
