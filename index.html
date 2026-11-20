@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDG On Campus Zagazig · Robotics Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#ece3cd;--card:rgba(255,251,240,.78);--ink:#2b2438;--mute:#6f6679;--orange:#cd5c33;--yellow:#e8a317;--green:#146c54;--blue:#1f5bd6;--red:#e8453c;--accent:var(--blue);--line:rgba(43,36,56,.18)}
+body[data-dept=Hardware]{--accent:var(--orange)}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:Nunito,system-ui,sans-serif;color:var(--ink);min-height:100vh;line-height:1.5;
+background:radial-gradient(ellipse at center,transparent 55%,rgba(150,120,70,.28)),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .25 0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"),var(--paper);background-attachment:fixed}
+h1,h2,h3{font-family:'Lilita One',Nunito,sans-serif;font-weight:400;margin:0;letter-spacing:.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+[hidden]{display:none!important}
+/* logos */
+.badge{position:relative;display:grid;place-items:center;text-align:center;background:#f4efe6;overflow:hidden;flex:none;
+background-image:linear-gradient(135deg,var(--red) 0 20%,transparent 20%),linear-gradient(225deg,var(--yellow) 0 16%,transparent 16%),linear-gradient(45deg,var(--green) 0 20%,transparent 20%),linear-gradient(315deg,var(--blue) 0 20%,transparent 20%)}
+.badge.gdg{width:64px;height:64px;border-radius:16px;line-height:1}
+.badge.rob{width:72px;height:72px;border-radius:50%}
+.badge b{font-family:'Lilita One';font-size:20px;display:block}
+.badge small{font-size:7px;font-weight:800;display:block}
+.badge.rob b{font-size:14px}
+.badge img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.badge.img b,.badge.img small{display:none}
+/* shared */
+.btn{border:2px solid var(--ink);background:var(--accent);color:#fff;border-radius:12px;padding:9px 16px;font-weight:800;cursor:pointer;box-shadow:3px 3px 0 var(--ink);transition:transform .1s,box-shadow .1s}
+.btn:hover{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink)}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.sm{padding:5px 11px;font-size:.85rem;box-shadow:2px 2px 0 var(--ink)}
+.btn.danger{background:var(--red)}
+.field{display:grid;gap:5px;margin-bottom:14px;font-weight:700}
+.field input,.field select,.field textarea{border:2px solid var(--ink);border-radius:10px;padding:10px 12px;background:#fffdf6;width:100%}
+.field textarea{min-height:90px;resize:vertical}
+.err{color:var(--red);font-weight:800;min-height:1.4em;margin:0 0 8px}
+/* login */
+#login{min-height:100vh;display:grid;place-items:center;padding:24px;position:relative;overflow:hidden}
+.deco{position:absolute;pointer-events:none}
+.deco.conf{top:0;left:20%;right:20%;height:70px}
+.deco.conf i{position:absolute;width:26px;height:26px;border:2px solid #000;transform:rotate(var(--r))}
+.deco.half{right:0;top:28%;display:grid;gap:12px}
+.deco.half i{display:block;width:62px;height:42px;border-radius:62px 62px 0 0}
+.deco.el{left:0;bottom:0;width:210px;height:190px}
+.deco.el i{position:absolute;clip-path:polygon(0 0,100% 0,100% 35%,35% 35%,35% 100%,0 100%)}
+.login-card{position:relative;z-index:1;width:min(440px,100%);background:var(--card);border:2px solid var(--ink);border-radius:22px;padding:28px;box-shadow:8px 8px 0 var(--ink)}
+.brand-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.login-card h1{font-size:2rem}
+.login-card p.sub{margin:4px 0 18px;color:var(--mute)}
+.seg{display:grid;grid-auto-flow:column;gap:6px;background:rgba(43,36,56,.08);padding:5px;border-radius:14px;margin-bottom:16px}
+.seg button{border:0;background:transparent;border-radius:10px;padding:9px;font-weight:800;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.demo-note{font-size:.82rem;background:#fff6d6;border:1.5px dashed var(--yellow);border-radius:10px;padding:8px 10px;margin-top:14px}
+/* app */
+#app{position:relative;padding:20px clamp(14px,4vw,48px) 90px}
+header.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+header.top .title{flex:1;min-width:200px}
+header.top h1{font-size:clamp(1.5rem,3.5vw,2.3rem)}
+.who{display:flex;align-items:center;gap:10px;font-weight:700}
+.chip{display:inline-block;border:1.5px solid var(--ink);border-radius:99px;padding:1px 10px;font-size:.78rem;font-weight:800;background:#fffdf6}
+.chip.todo{background:#f1e4dc}.chip.doing{background:#fff0c2}.chip.done{background:#cfe9dc}.chip.late{background:#ffd4cf}
+.depts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.depts button{border:2px solid var(--ink);border-radius:14px;padding:10px 22px;font-family:'Lilita One';font-size:1.15rem;cursor:pointer;background:#fffdf6;box-shadow:3px 3px 0 var(--ink)}
+.depts button[data-d=Software][aria-pressed=true]{background:var(--blue);color:#fff}
+.depts button[data-d=Hardware][aria-pressed=true]{background:var(--orange);color:#fff}
+.depts button[aria-pressed=true]{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px}
+.stat{background:var(--card);border:2px solid var(--ink);border-radius:16px;padding:12px 16px;border-left:10px solid var(--c)}
+.stat b{font-family:'Lilita One';font-size:1.9rem;display:block;line-height:1.1}
+.stat span{color:var(--mute);font-weight:700;font-size:.9rem}
+.grid{display:grid;grid-template-columns:1.6fr 1fr;gap:20px;align-items:start}
+.col{display:grid;gap:20px}
+.panel{background:var(--card);border:2px solid var(--ink);border-radius:18px;padding:18px;backdrop-filter:blur(2px)}
+.panel>header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;border-bottom:2px dashed var(--line);padding-bottom:10px}
+.panel h2{font-size:1.4rem;color:var(--accent)}
+.item{border:1.5px solid var(--line);background:#fffdf6;border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.item:last-child{margin-bottom:0}
+.item h3{font-size:1.1rem;margin-bottom:2px}
+.item p{margin:4px 0 8px}
+.meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.85rem;color:var(--mute);font-weight:700}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.bar{height:10px;border:1.5px solid var(--ink);border-radius:9px;overflow:hidden;background:#fff;margin:6px 0 2px}
+.bar i{display:block;height:100%;background:var(--green)}
+.status{display:inline-flex;border:2px solid var(--ink);border-radius:11px;overflow:hidden}
+.status button{border:0;background:#fffdf6;padding:5px 11px;font-weight:800;cursor:pointer;font-size:.85rem}
+.status button+button{border-left:2px solid var(--ink)}
+.status button[aria-pressed=true]{background:var(--green);color:#fff}
+.status button[data-s=To\ do][aria-pressed=true]{background:var(--mute)}
+.status button[data-s=In\ progress][aria-pressed=true]{background:var(--yellow);color:var(--ink)}
+.fb{border-left:6px solid var(--green)}
+.empty{color:var(--mute);text-align:center;padding:14px;border:2px dashed var(--line);border-radius:14px}
+.dots{position:fixed;left:30%;bottom:10px;width:260px;height:30px;background:radial-gradient(circle,var(--orange) 3px,transparent 4px) 0 0/26px 26px;opacity:.7;pointer-events:none}
+.arcs{position:fixed;right:0;bottom:0;width:150px;height:150px;pointer-events:none}
+dialog{border:2px solid var(--ink);border-radius:20px;padding:24px;width:min(480px,92vw);background:#fbf6e8;box-shadow:8px 8px 0 var(--ink)}
+dialog::backdrop{background:rgba(43,36,56,.5)}
+dialog h2{margin-bottom:14px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:12px;font-weight:700;z-index:99;max-width:90vw}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.dots,.deco.half,.arcs{display:none}}
+@media(max-width:520px){.deco.el{width:110px;height:100px}.login-card{padding:20px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body data-dept="Software">
+
+<!-- LOGIN -->
+<main id="login">
+  <div class="deco conf" aria-hidden="true"></div>
+  <div class="deco half" aria-hidden="true"><i style="background:var(--orange)"></i><i style="background:var(--yellow)"></i><i style="background:var(--green)"></i><i style="background:var(--blue)"></i></div>
+  <div class="deco el" aria-hidden="true"><i style="background:var(--green);left:0;bottom:70px;width:80px;height:90px"></i><i style="background:var(--orange);left:42px;bottom:22px;width:100px;height:90px"></i><i style="background:var(--yellow);left:105px;bottom:-12px;width:105px;height:80px"></i></div>
+  <form class="login-card" id="loginForm" autocomplete="on">
+    <div class="brand-row">
+      <span class="badge gdg"><img src="assets/gdg-logo.png" alt="GDG On Campus Zagazig" onload="this.parentNode.classList.add('img')" onerror="this.remove()"><b>GDG</b><small>On Campus Zagazig</small></span>
+      <span class="badge rob"><img src="assets/robotics-logo.png" alt="Robotics" onload="this.parentNode.classList.add('img')" onerror="this.remove()"><b>ROBOTICS</b></span>
+    </div>
+    <h1>Welcome back</h1>
+    <p class="sub">Sign in to see your Software or Hardware track.</p>
+    <div class="seg" role="group" aria-label="Sign in as">
+      <button type="button" data-role="student" aria-pressed="true">Student</button>
+      <button type="button" data-role="instructor" aria-pressed="false">Instructor</button>
+    </div>
+    <label class="field">Username<input id="u" required autocomplete="username"></label>
+    <label class="field">Password<input id="p" type="password" required autocomplete="current-password"></label>
+    <p class="err" id="loginErr" role="alert"></p>
+    <button class="btn" style="width:100%" id="loginBtn">Sign in</button>
+    <div class="demo-note" id="demoNote" hidden><b>Demo mode</b> (no Google Sheet connected). Try <code>ahmed</code> / <code>stud123</code> (student) or <code>sara</code> / <code>inst123</code> (instructor). Everyone has a Software tab and a Hardware tab.</div>
+  </form>
+</main>
+
+<!-- APP -->
+<div id="app" hidden>
+  <header class="top">
+    <span class="badge gdg"><img src="assets/gdg-logo.png" alt="GDG On Campus Zagazig" onload="this.parentNode.classList.add('img')" onerror="this.remove()"><b>GDG</b><small>On Campus Zagazig</small></span>
+    <div class="title"><h1 id="pageTitle">Dashboard</h1><div class="meta" id="roleLine"></div></div>
+    <div class="who"><span id="whoName"></span><button class="btn ghost sm" id="logout">Sign out</button></div>
+    <span class="badge rob"><img src="assets/robotics-logo.png" alt="Robotics" onload="this.parentNode.classList.add('img')" onerror="this.remove()"><b>ROBOTICS</b></span>
+  </header>
+  <nav class="depts" id="depts" aria-label="Department"></nav>
+  <section class="stats" id="stats" aria-live="polite"></section>
+  <div class="grid">
+    <section class="panel" id="tasksPanel"></section>
+    <div class="col">
+      <section class="panel" id="annPanel"></section>
+      <section class="panel" id="fbPanel"></section>
+    </div>
+  </div>
+  <div class="dots" aria-hidden="true"></div>
+  <svg class="arcs" viewBox="0 0 150 150" fill="none" stroke="#146c54" stroke-width="3" aria-hidden="true"><circle cx="150" cy="150" r="60"/><circle cx="150" cy="150" r="85"/><circle cx="150" cy="150" r="110"/><circle cx="150" cy="150" r="135"/></svg>
+</div>
+
+<dialog id="dlg"><form method="dialog" id="dlgForm"><h2 id="dlgTitle"></h2><div id="dlgFields"></div><p class="err" id="dlgErr"></p>
+  <div class="acts" style="justify-content:flex-end"><button class="btn ghost" type="button" id="dlgCancel">Cancel</button><button class="btn" id="dlgOk">Save</button></div></form></dialog>
+
+<script>
+/* ===== CONFIG ===== paste your Apps Script Web App URL below. Leave empty for demo mode. */
+const CONFIG={API_URL:'',POLL_MS:8000};
+
+/* ===== helpers ===== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const today=()=>iso(0);
+const DEPTS=['Software','Hardware'];
+const deptsOf=()=>DEPTS; /* everyone studies and teaches both departments */
+const STATUSES=['To do','In progress','Done'];
+const fmt=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}catch(e){return d}};
+let S={token:null,user:null,dept:null,data:null,sig:''};
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;t.setAttribute('role','status');document.body.append(t);setTimeout(()=>t.remove(),2600)}
+
+/* ===== API layer: Google Apps Script, or local demo with the same actions ===== */
+async function api(action,payload={}){
+  const body={action,token:S.token,...payload};
+  if(!CONFIG.API_URL)return Demo.handle(body);
+  const r=await fetch(CONFIG.API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
+  const j=await r.json();
+  if(!j.ok)throw new Error(j.error||'Request failed');
+  return j.data;
+}
+
+/* ===== Demo backend (localStorage). Mirrors Code.gs so the UI can be tried instantly ===== */
+const Demo={
+  seed(){
+    const U=(id,name,role,username,password)=>({id,name,role,username,password});
+    return{
+      users:[U('i1','Eng. Sara Hassan','instructor','sara','inst123'),U('i2','Eng. Omar Nabil','instructor','omar','inst123'),
+        U('s1','Ahmed Samir','student','ahmed','stud123'),U('s2','Mona Adel','student','mona','stud123'),U('s3','Laila Yasser','student','laila','stud123')],
+      tasks:[
+        {id:'t1',department:'Software',title:'Build a login page',description:'Create a responsive login form with HTML and CSS, then validate inputs with JavaScript.',deadline:iso(4)},
+        {id:'t2',department:'Software',title:'REST API basics',description:'Fetch data from a public API and render it as a list of cards.',deadline:iso(10)},
+        {id:'t3',department:'Software',title:'Git workflow practice',description:'Create a repo, make three commits, and open a pull request.',deadline:iso(-2)},
+        {id:'t4',department:'Hardware',title:'Blink an LED with Arduino',description:'Wire an LED and resistor, then write a sketch that blinks it every 500 ms.',deadline:iso(3)},
+        {id:'t5',department:'Hardware',title:'Read a temperature sensor',description:'Connect a DHT11 sensor and print readings to the serial monitor.',deadline:iso(9)},
+        {id:'t6',department:'Hardware',title:'Servo sweep',description:'Control a servo motor with a potentiometer.',deadline:iso(-1)}],
+      progress:[{taskId:'t1',studentId:'s1',status:'In progress'},{taskId:'t3',studentId:'s1',status:'Done'},{taskId:'t4',studentId:'s1',status:'In progress'},{taskId:'t1',studentId:'s2',status:'Done'},{taskId:'t4',studentId:'s2',status:'Done'},{taskId:'t6',studentId:'s2',status:'In progress'},{taskId:'t2',studentId:'s3',status:'In progress'},{taskId:'t5',studentId:'s3',status:'Done'}],
+      feedback:[
+        {id:'f1',department:'Software',taskId:'t3',studentId:'s1',text:'Clean commit messages. Next time, make smaller commits.',date:iso(-1),author:'Eng. Sara Hassan'},
+        {id:'f2',department:'Hardware',taskId:'t4',studentId:'s2',text:'Great wiring! Add a comment to each pin definition in your sketch.',date:iso(-1),author:'Eng. Omar Nabil'},
+        {id:'f3',department:'Software',taskId:'t1',studentId:'s3',text:'Excellent layout on mobile. Please add error messages for empty fields.',date:iso(-2),author:'Eng. Sara Hassan'}],
+      announcements:[
+        {id:'a1',department:'Software',title:'Weekly meetup on Thursday',body:'Bring your laptop. We will review the login page tasks together.',date:iso(-1),author:'Eng. Sara Hassan'},
+        {id:'a2',department:'Software',title:'Git cheat sheet',body:'A short Git guide is now in the shared drive.',date:iso(-4),author:'Eng. Sara Hassan'},
+        {id:'a3',department:'Hardware',title:'Lab kits available',body:'Pick up your Arduino kit from the lab before Wednesday.',date:iso(-1),author:'Eng. Omar Nabil'},
+        {id:'a4',department:'Hardware',title:'Safety first',body:'Always unplug the board before changing wires.',date:iso(-5),author:'Eng. Omar Nabil'}]};
+  },
+  load(){try{const v=JSON.parse(localStorage.getItem('gdg_demo_db2'));if(v)return v}catch(e){}const s=this.seed();this.save(s);return s},
+  save(db){try{localStorage.setItem('gdg_demo_db2',JSON.stringify(db))}catch(e){}},
+  handle(b){
+    const db=this.load(),id=()=>Math.random().toString(36).slice(2,9),pub=u=>({id:u.id,name:u.name,role:u.role});
+    if(b.action==='login'){
+      const u=db.users.find(x=>x.username===String(b.username).trim().toLowerCase()&&x.password===b.password&&x.role===b.role);
+      if(!u)throw new Error('Wrong username, password, or role.');
+      return{token:u.id,user:pub(u)};
+    }
+    const u=db.users.find(x=>x.id===b.token);if(!u)throw new Error('SESSION');
+    const D=deptsOf(u),ins=u.role==='instructor',need=r=>{if(!ins)throw new Error('Instructors only.')},allow=d=>{if(!D.includes(d))throw new Error('Not your department.')};
+    let out=null;
+    switch(b.action){
+      case'getAll':{
+        const tasks=db.tasks.filter(t=>D.includes(t.department));
+        const ids=tasks.map(t=>t.id);
+        out={tasks,announcements:db.announcements.filter(a=>D.includes(a.department)),
+          feedback:db.feedback.filter(f=>D.includes(f.department)&&(ins||f.studentId===u.id)),
+          progress:db.progress.filter(p=>ids.includes(p.taskId)&&(ins||p.studentId===u.id)),
+          students:ins?db.users.filter(x=>x.role==='student').map(x=>({id:x.id,name:x.name})):[]};
+        return JSON.parse(JSON.stringify(out));}
+      case'saveTask':need();allow(b.department);db.tasks.push({id:id(),department:b.department,title:b.title,description:b.description,deadline:b.deadline});break;
+      case'deleteTask':need();{const t=db.tasks.find(x=>x.id===b.id);if(t)allow(t.department);db.tasks=db.tasks.filter(x=>x.id!==b.id);db.progress=db.progress.filter(p=>p.taskId!==b.id);db.feedback=db.feedback.filter(f=>f.taskId!==b.id)}break;
+      case'setProgress':{if(ins)throw new Error('Students only.');if(!STATUSES.includes(b.status))throw new Error('Bad status.');
+        const t=db.tasks.find(x=>x.id===b.taskId);if(!t)throw new Error('Task not found.');allow(t.department);
+        const p=db.progress.find(x=>x.taskId===b.taskId&&x.studentId===u.id);p?p.status=b.status:db.progress.push({taskId:b.taskId,studentId:u.id,status:b.status})}break;
+      case'addAnnouncement':need();allow(b.department);db.announcements.push({id:id(),department:b.department,title:b.title,body:b.body,date:today(),author:u.name});break;
+      case'deleteAnnouncement':need();{const a=db.announcements.find(x=>x.id===b.id);if(a)allow(a.department);db.announcements=db.announcements.filter(x=>x.id!==b.id)}break;
+      case'addFeedback':need();{const t=db.tasks.find(x=>x.id===b.taskId);if(!t)throw new Error('Task not found.');allow(t.department);
+        db.feedback.push({id:id(),department:t.department,taskId:t.id,studentId:b.studentId,text:b.text,date:today(),author:u.name})}break;
+      default:throw new Error('Unknown action.');
+    }
+    this.save(db);return true;
+  }
+};
+
+/* ===== session + login ===== */
+let loginRole='student';
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{loginRole=b.dataset.role;document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+$('#demoNote').hidden=!!CONFIG.API_URL;
+$('#loginForm').onsubmit=async e=>{
+  e.preventDefault();$('#loginErr').textContent='';$('#loginBtn').disabled=true;
+  try{
+    const r=await api('login',{username:$('#u').value.trim().toLowerCase(),password:$('#p').value,role:loginRole});
+    S.token=r.token;S.user=r.user;try{sessionStorage.setItem('gdg_session',JSON.stringify(r))}catch(e){}
+    await enter();
+  }catch(err){$('#loginErr').textContent=err.message}
+  $('#loginBtn').disabled=false;
+};
+$('#logout').onclick=logout;
+function logout(){S={token:null,user:null,dept:null,data:null,sig:''};try{sessionStorage.removeItem('gdg_session')}catch(e){}$('#app').hidden=true;$('#login').hidden=false;$('#p').value=''}
+async function enter(){
+  const D=deptsOf(S.user);S.dept=D[0];
+  $('#login').hidden=true;$('#app').hidden=false;
+  $('#whoName').textContent=S.user.name;
+  $('#roleLine').innerHTML=`<span class="chip">${S.user.role==='instructor'?'Instructor':'Student'}</span>`;
+  await refresh(true);
+}
+
+/* ===== data refresh (polling = changes appear without reloading) ===== */
+async function refresh(force){
+  if(!S.token)return;
+  try{
+    const d=await api('getAll');const sig=JSON.stringify(d);
+    if(force||sig!==S.sig){S.sig=sig;S.data=d;if(!$('#dlg').open)render()}
+  }catch(e){if(e.message==='SESSION'||/session/i.test(e.message)){toast('Session expired. Please sign in again.');logout()}}
+}
+setInterval(()=>{if(!document.hidden)refresh()},CONFIG.POLL_MS);
+window.addEventListener('storage',()=>refresh());
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
+async function act(action,payload,msg){
+  try{await api(action,payload);toast(msg);await refresh(true)}catch(e){toast(e.message)}
+}
+
+/* ===== render ===== */
+const me=()=>S.user,isIns=()=>me().role==='instructor';
+const stat=(tid,sid)=>(S.data.progress.find(p=>p.taskId===tid&&p.studentId===sid)||{}).status||'To do';
+const chipFor=s=>({'To do':'todo','In progress':'doing','Done':'done'}[s]);
+const name=id=>(S.data.students.find(s=>s.id===id)||{}).name||'Student';
+function render(){
+  const D=deptsOf(me()),d=S.dept,data=S.data;
+  document.body.dataset.dept=d;
+  $('#pageTitle').textContent=`${d} Department`;
+  $('#depts').innerHTML=D.map(x=>`<button data-d="${x}" aria-pressed="${x===d}">${x}</button>`).join('');
+  $('#depts').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.dept=b.dataset.d;render()});
+  const tasks=data.tasks.filter(t=>t.department===d).sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  const ann=data.announcements.filter(a=>a.department===d).sort((a,b)=>b.date.localeCompare(a.date));
+  const fb=data.feedback.filter(f=>f.department===d).sort((a,b)=>b.date.localeCompare(a.date));
+  const studs=data.students;
+  /* stats */
+  let s1;
+  if(isIns()){const tot=tasks.length*studs.length,done=tasks.reduce((n,t)=>n+studs.filter(s=>stat(t.id,s.id)==='Done').length,0);s1=[[tasks.length,'Tasks','--blue'],[studs.length,'Students','--green'],[tot?Math.round(done/tot*100)+'%':'0%','Completed overall','--orange']]}
+  else{const done=tasks.filter(t=>stat(t.id,me().id)==='Done').length;s1=[[tasks.length,'Tasks assigned','--blue'],[`${done}/${tasks.length}`,'Tasks done','--green'],[tasks.filter(t=>t.deadline<today()&&stat(t.id,me().id)!=='Done').length,'Overdue','--red']]}
+  s1.push([ann.length,'Announcements','--yellow']);
+  $('#stats').innerHTML=s1.map(([n,l,c])=>`<div class="stat" style="--c:var(${c})"><b>${esc(n)}</b><span>${l}</span></div>`).join('');
+  /* tasks */
+  $('#tasksPanel').innerHTML=`<header><h2>Tasks</h2>${isIns()?'<button class="btn sm" id="addTask">+ New task</button>':''}</header>`+
+    (tasks.map(t=>{
+      const late=t.deadline<today();
+      if(isIns()){
+        const done=studs.filter(s=>stat(t.id,s.id)==='Done').length,pct=studs.length?Math.round(done/studs.length*100):0;
+        return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late?'late':''}">Due ${fmt(t.deadline)}</span></div><p>${esc(t.description)}</p>
+        <div class="meta">${done} of ${studs.length} students done</div><div class="bar"><i style="width:${pct}%"></i></div>
+        <details><summary class="meta" style="cursor:pointer">Student progress</summary>${studs.map(s=>`<div class="meta">${esc(s.name)}: <span class="chip ${chipFor(stat(t.id,s.id))}">${stat(t.id,s.id)}</span></div>`).join('')||'<div class="meta">No students yet.</div>'}</details>
+        <div class="acts"><button class="btn sm" data-fb="${t.id}">Give feedback</button><button class="btn sm danger" data-deltask="${t.id}">Delete</button></div></article>`;
+      }
+      const st=stat(t.id,me().id);
+      return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late&&st!=='Done'?'late':''}">Due ${fmt(t.deadline)}</span><span class="chip ${chipFor(st)}">${st}</span></div><p>${esc(t.description)}</p>
+      <div class="status" role="group" aria-label="Progress for ${esc(t.title)}">${STATUSES.map(x=>`<button data-prog="${t.id}" data-s="${x}" aria-pressed="${x===st}">${x}</button>`).join('')}</div></article>`;
+    }).join('')||`<div class="empty">${isIns()?'No tasks yet. Add the first one.':'No tasks assigned yet.'}</div>`);
+  /* announcements */
+  $('#annPanel').innerHTML=`<header><h2>Announcements</h2>${isIns()?'<button class="btn sm" id="addAnn">+ Post</button>':''}</header>`+
+    (ann.map(a=>`<article class="item"><h3>${esc(a.title)}</h3><p>${esc(a.body)}</p><div class="meta">${esc(a.author)} · ${fmt(a.date)}</div>${isIns()?`<div class="acts"><button class="btn sm danger" data-delann="${a.id}">Delete</button></div>`:''}</article>`).join('')||'<div class="empty">No announcements yet.</div>');
+  /* feedback */
+  $('#fbPanel').innerHTML=`<header><h2>Feedback</h2></header>`+
+    (fb.map(f=>{const t=data.tasks.find(x=>x.id===f.taskId);return`<article class="item fb"><div class="meta">${isIns()?`<b>${esc(name(f.studentId))}</b> on `:''}<b>${esc(t?t.title:'Task')}</b></div><p>${esc(f.text)}</p><div class="meta">${esc(f.author)} · ${fmt(f.date)}</div></article>`}).join('')||`<div class="empty">${isIns()?'Feedback you give will show here.':'No feedback yet. Keep going!'}</div>`);
+  bind(tasks,studs);
+}
+function bind(tasks,studs){
+  const q=(s,f)=>document.querySelectorAll(s).forEach(f);
+  q('[data-prog]',b=>b.onclick=()=>act('setProgress',{taskId:b.dataset.prog,status:b.dataset.s},'Progress saved'));
+  q('[data-deltask]',b=>b.onclick=()=>{if(confirm('Delete this task, its progress and feedback?'))act('deleteTask',{id:b.dataset.deltask},'Task deleted')});
+  q('[data-delann]',b=>b.onclick=()=>{if(confirm('Delete this announcement?'))act('deleteAnnouncement',{id:b.dataset.delann},'Announcement deleted')});
+  q('[data-fb]',b=>b.onclick=()=>{
+    if(!studs.length)return toast('No students in this department yet.');
+    form('Give feedback',[{n:'studentId',l:'Student',t:'select',o:studs.map(s=>[s.id,s.name])},{n:'text',l:'Feedback',t:'textarea'}],v=>act('addFeedback',{taskId:b.dataset.fb,...v},'Feedback sent'));
+  });
+  const at=$('#addTask');if(at)at.onclick=()=>form(`New ${S.dept} task`,[{n:'title',l:'Title'},{n:'description',l:'Description',t:'textarea'},{n:'deadline',l:'Deadline',t:'date',v:iso(7)}],v=>act('saveTask',{department:S.dept,...v},'Task published'));
+  const aa=$('#addAnn');if(aa)aa.onclick=()=>form(`New ${S.dept} announcement`,[{n:'title',l:'Title'},{n:'body',l:'Message',t:'textarea'}],v=>act('addAnnouncement',{department:S.dept,...v},'Announcement posted'));
+}
+
+/* ===== reusable modal form ===== */
+function form(title,fields,onSubmit){
+  $('#dlgTitle').textContent=title;$('#dlgErr').textContent='';
+  $('#dlgFields').innerHTML=fields.map(f=>`<label class="field">${f.l}${f.t==='textarea'?`<textarea name="${f.n}" required></textarea>`:f.t==='select'?`<select name="${f.n}" required>${f.o.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select>`:`<input name="${f.n}" type="${f.t||'text'}" value="${esc(f.v||'')}" required>`}</label>`).join('');
+  const dlg=$('#dlg');
+  $('#dlgCancel').onclick=()=>{dlg.close();refresh(true)};
+  $('#dlgForm').onsubmit=e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.target));for(const k in v)if(typeof v[k]==='string')v[k]=v[k].trim();dlg.close();onSubmit(v)};
+  dlg.showModal();dlg.querySelector('input,textarea,select').focus();
+}
+
+/* ===== restore session on reload ===== */
+(async()=>{try{const r=JSON.parse(sessionStorage.getItem('gdg_session'));if(r){S.token=r.token;S.user=r.user;await enter()}}catch(e){}})();
+(function(){const c=document.querySelector('.deco.conf'),cols=['#e8a317','#1f5bd6','#e8453c','#146c54'];
+c.innerHTML=Array.from({length:9},(_,i)=>`<i style="left:${i*11}%;top:${(i*17)%40}px;--r:${(i*47)%90}deg;background:${cols[i%4]}"></i>`).join('')})();
+</script>
+</body>
+</html>
