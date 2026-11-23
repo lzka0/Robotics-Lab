@@ -1,53 +1,61 @@
-# GDG On Campus Zagazig · Robotics Portal
+# GDG On Campus Zagazig · Robotics Portal (Supabase version)
 
-Instructor/student portal where every student and instructor has a **Software** tab and a **Hardware** tab, backed by Google Sheets through Google Apps Script.
+Students and instructors each get **Software**, **Hardware** and **Mechanical** tabs (tasks with links, announcements, feedback) plus a **Sessions** tab for lecture links. Data lives in Supabase (free tier), and changes appear live without refreshing.
 
 ```
-gdg-robotics-portal/
-├── index.html      the whole website (HTML + CSS + JS)
-├── Code.gs         Google Apps Script backend
-└── assets/         optional: gdg-logo.png, robotics-logo.png
+index.html           the whole website
+assets/              gdg-logo.png, robotics-logo.png (replace with your real logos)
+supabase/schema.sql  tables, security rules and live updates
 ```
 
-## 1. Try it now (demo mode)
-Open `index.html` in a browser. With `CONFIG.API_URL` empty, the site stores sample data in your browser, so every feature works instantly. Demo logins are shown on the login screen.
+## 0. Try it first (demo mode)
+Open `index.html` with the Supabase settings empty. Demo logins: `sara` / `inst123` (instructor), `ahmed` / `stud123` (student). Data stays in your browser only.
 
-## 2. Connect Google Sheets
-1. Create a new Google Sheet.
-2. **Extensions → Apps Script**. Delete the default code and paste in `Code.gs`.
-3. Select the `setup` function and click **Run**. Approve the permissions. This creates the sheets **Users, Tasks, Progress, Feedback, Announcements** with sample rows.
-4. **Deploy → New deployment → Web app**
-   - Execute as: **Me**
-   - Who has access: **Anyone**
-5. Copy the **Web app URL** and paste it into `index.html`:
-   ```js
-   const CONFIG = { API_URL: 'https://script.google.com/macros/s/XXXX/exec', POLL_MS: 8000 };
+## 1. Create the Supabase project
+1. Sign up at supabase.com, then **New project**. Pick a region close to your users (for Egypt, an EU region is usually closest).
+2. Open **SQL Editor → New query**, paste all of `supabase/schema.sql`, and click **Run**. It should finish without errors.
+
+## 2. Lock down sign-ups (important)
+In **Authentication** settings:
+- Turn **off** "Allow new users to sign up". Otherwise anyone with your public key could create an account.
+- Turn **off** "Confirm email", because the portal's users do not have real mailboxes.
+
+## 3. Create users
+The portal logs in with a username. Behind the scenes the username becomes the email `username@gdg-portal.app` (set by `EMAIL_DOMAIN` in `index.html`).
+1. **Authentication → Users → Add user → Create new user**.
+2. Email: `sara@gdg-portal.app` (lowercase username), set a strong password, tick **Auto Confirm User**, and create it.
+3. Every new account starts as a **student**. To set the name and role, run this in the SQL Editor:
+   ```sql
+   update public.profiles set name = 'Eng. Sara Hassan', role = 'instructor' where username = 'sara';
    ```
-6. Host `index.html` anywhere static (GitHub Pages, Netlify, or open it locally).
-7. After any later change to `Code.gs`, use **Deploy → Manage deployments → Edit → New version**.
+   For students, only the name needs changing: `update public.profiles set name = 'Ahmed Samir' where username = 'ahmed';`
+4. Create your own instructor account first and test the login before adding anyone else.
 
-### Sheet columns
-| Sheet | Columns |
-|---|---|
-| Users | id, name, role (`student`/`instructor`), username, password (hashed) |
-| Tasks | id, department, title, description, deadline (`YYYY-MM-DD`) |
-| Progress | taskId, studentId, status (`To do`/`In progress`/`Done`) |
-| Feedback | id, department, taskId, studentId, text, date, author |
-| Announcements | id, department, title, body, date, author |
+If Supabase rejects the email domain, use another made-up domain, and change `EMAIL_DOMAIN` in `index.html` to match. All users must use the same one.
 
-**Add users** by running `addUser('s9','Name','student','username','password')` in the Apps Script editor. Passwords are stored as salted SHA-256 hashes, so don't type plain passwords into the sheet. Keep usernames lowercase.
+## 4. Connect the website
+In **Project Settings → API** copy the **Project URL** and the **anon / publishable key** into the top of the script in `index.html`:
+```js
+const CONFIG={SUPABASE_URL:'https://xxxx.supabase.co',SUPABASE_ANON_KEY:'eyJ...',EMAIL_DOMAIN:'gdg-portal.app',POLL_MS:30000};
+```
+**Never** paste the `service_role` key anywhere in the website. It bypasses all security.
 
-### Live updates
-The page re-reads the sheet every 8 seconds (`POLL_MS`) and when the tab regains focus. Edits made directly in the sheet appear without a manual refresh.
+## 5. Publish
+Upload `index.html` and `assets/` to a GitHub repo, then Settings → Pages → Deploy from branch → `main` → `/ (root)`.
 
-## 3. Real logos
-Drop the exported logos into `assets/gdg-logo.png` and `assets/robotics-logo.png`. The page uses them automatically and falls back to a CSS version if they are missing.
+## Security model
+- The anon key is meant to be public. Safety comes from **row level security** in `schema.sql`:
+  - Only logged-in users can read anything. Anonymous visitors get nothing.
+  - Only instructors can create or delete tasks, announcements, sessions and feedback.
+  - Students can read their own feedback and progress and change only their own progress.
+  - Names shown as authors are set by the database, not by the browser.
+  - Roles can only be changed from the Supabase dashboard (a student cannot promote themselves).
+- Passwords are handled and hashed by Supabase Auth. They never appear in tables or in the website.
+- Attempts to log in are rate limited by Supabase, but use strong passwords anyway.
 
-## Security and limits of a public project
-- **No API keys are in the frontend.** The only public value is the Web App URL, which is an endpoint, not a credential. The sheet itself stays private; only the script can read it.
-- Anyone who knows the URL can call it, so the script checks every request: login with a hashed password, a session token (expires after 6 hours), role checks (students can't post or delete), and department checks (users only see their own department).
-- This is lightweight auth, not enterprise-grade. There is no rate limiting or password reset, and passwords are sent to Apps Script over HTTPS. Don't store sensitive personal data. Use it for course management, not private records.
-- Apps Script has quotas (daily executions and about 30 simultaneous executions) and requests take around 1 second. That is fine for a club-sized group.
-- Writes are serialized with a script lock. If two people edit at the same moment, one waits briefly.
-- Text is escaped in the page, and values that start with `=`, `+`, `-`, or `@` are neutralized before being written to the sheet.
-- Demo mode stores everything in the visitor's browser and is not secure. Use it only for previews.
+## Limits and notes
+- To save data transfer, the portal loads tasks, feedback and announcements from the **last 90 days**. A "Show older tasks" button at the bottom of the task list loads everything. Live updates refresh only the table that changed, and there is no constant polling while live updates work.
+- A free Supabase project may pause after a period of no activity. Restore it from the dashboard.
+- Adding a track (e.g. AI) means editing the CHECK lists in `schema.sql` (or running `alter table ... drop/add constraint`) and the `DEPTS` list in `index.html`.
+- To edit a task, delete and recreate it (editing in the UI is not built yet). You can also edit rows in Supabase's Table Editor.
+- The page loads the Supabase library from the jsDelivr CDN (`@supabase/supabase-js@2`). For a stricter setup, pin an exact version.
