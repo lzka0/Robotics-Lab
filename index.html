@@ -122,7 +122,7 @@ dialog h2{margin-bottom:14px}
     <label class="field">Password<input id="p" type="password" required autocomplete="current-password"></label>
     <p class="err" id="loginErr" role="alert"></p>
     <button class="btn" style="width:100%" id="loginBtn">Sign in</button>
-    <div class="demo-note" id="demoNote" hidden><b>Demo mode</b> (no Google Sheet connected). Try <code>ahmed</code> / <code>stud123</code> (student) or <code>sara</code> / <code>inst123</code> (instructor). Everyone has Software, Hardware and Mechanical tabs plus Sessions.</div>
+    <div class="demo-note" id="demoNote" hidden><b>Demo mode</b> (Supabase not configured). Try <code>ahmed</code> / <code>stud123</code> (student) or <code>sara</code> / <code>inst123</code> (instructor). Everyone has Software, Hardware and Mechanical tabs plus Sessions.</div>
   </form>
 </main>
 
@@ -151,9 +151,13 @@ dialog h2{margin-bottom:14px}
 <dialog id="dlg"><form method="dialog" id="dlgForm"><h2 id="dlgTitle"></h2><div id="dlgFields"></div><p class="err" id="dlgErr"></p>
   <div class="acts" style="justify-content:flex-end"><button class="btn ghost" type="button" id="dlgCancel">Cancel</button><button class="btn" id="dlgOk">Save</button></div></form></dialog>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-/* ===== CONFIG ===== paste your Apps Script Web App URL below. Leave empty for demo mode. */
-const CONFIG={API_URL:'https://script.google.com/macros/s/AKfycbxIkfOVnIxrI0FMJSoateLgBx9toE6nP-jBDy1r-oLjSOzUstBIfoDqsBtylM0f3eaELA/exec',POLL_MS:8000};
+/* ===== CONFIG ===== paste your Supabase Project URL and anon (publishable) key. Leave empty for demo mode.
+   Never put the service_role key here. EMAIL_DOMAIN must match the domain used for the Auth users you create. */
+const CONFIG={SUPABASE_URL:'https://bjenydglytmtulumtomi.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_6JSQhNKwsNrEcoikUGglLw_k1BjFgJM',EMAIL_DOMAIN:'gdg-portal.app',POLL_MS:30000};
+const LIVE=!!(CONFIG.SUPABASE_URL&&CONFIG.SUPABASE_ANON_KEY);
+const SB=LIVE&&window.supabase?window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY):null;
 
 /* ===== helpers ===== */
 const $=s=>document.querySelector(s);
@@ -170,17 +174,57 @@ const parseLinks=v=>{const l=linkList(v);if(l.length>10)throw new Error('Maximum
 const host=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return 'Link'}};
 const linksHtml=s=>{const l=linkList(s).filter(okLink);return l.length?`<div class="acts">${l.map(u=>`<a class="btn ghost sm" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(host(u))} &#8599;</a>`).join('')}</div>`:''};
 const fmt=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}catch(e){return d}};
-let S={token:null,user:null,dept:null,data:null,sig:''};
+let S={token:null,user:null,dept:null,data:null,sig:'',days:90};
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;t.setAttribute('role','status');document.body.append(t);setTimeout(()=>t.remove(),2600)}
 
 /* ===== API layer: Google Apps Script, or local demo with the same actions ===== */
-async function api(action,payload={}){
-  const body={action,token:S.token,...payload};
-  if(!CONFIG.API_URL)return Demo.handle(body);
-  const r=await fetch(CONFIG.API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
-  const j=await r.json();
-  if(!j.ok)throw new Error(j.error||'Request failed');
-  return j.data;
+async function api(action,p={}){
+  if(!LIVE)return Demo.handle({action,token:S.token,...p});
+  if(!SB)throw new Error('Could not load the Supabase library. Check your connection.');
+  return Supa[action](p);
+}
+const dbErr=e=>{const m=String(e.message||'');
+  if(e.status===401||e.code==='PGRST301'||/jwt/i.test(m))return new Error('SESSION');
+  if(e.code==='42501'||/row-level security/i.test(m))return new Error('Not allowed.');
+  if(e.code==='23514')return new Error('Invalid value. Check the links and fields.');
+  return new Error(m||'Request failed')};
+const run=async q=>{const{data,error}=await q;if(error)throw dbErr(error);return data};
+const Supa={
+  async login(p){
+    const{data,error}=await SB.auth.signInWithPassword({email:`${p.username}@${CONFIG.EMAIL_DOMAIN}`,password:p.password});
+    if(error)throw new Error(/invalid login/i.test(error.message)?'Wrong username or password.':error.message);
+    let user;try{user=await run(SB.from('profiles').select('id,name,role').eq('id',data.user.id).single())}catch(e){await SB.auth.signOut();throw new Error('Account is not set up yet. Ask an admin.')}
+    return{token:data.session.access_token,user};
+  },
+  /* loads only the last S.days days of tasks/feedback/announcements; `only` = set of tables to re-fetch */
+  async getAll(p){
+    const only=p.only,want=t=>!only||only.has(t),out={...(only&&S.data?S.data:{})},ins=S.user.role==='instructor',jobs=[];
+    const d=new Date();d.setDate(d.getDate()-S.days);const cut=d.toISOString().slice(0,10);
+    if(want('tasks'))jobs.push(run(SB.from('tasks').select('*').gte('deadline',cut)).then(v=>{out.tasks=v}));
+    if(want('announcements'))jobs.push(run(SB.from('announcements').select('*').gte('date',cut)).then(v=>{out.announcements=v}));
+    if(want('feedback'))jobs.push(run(SB.from('feedback').select('*').gte('date',cut)).then(v=>{out.feedback=v.map(f=>({id:f.id,department:f.department,taskId:f.task_id,studentId:f.student_id,text:f.text,date:f.date,author:f.author}))}));
+    if(want('sessions'))jobs.push(run(SB.from('sessions').select('*')).then(v=>{out.sessions=v}));
+    if(want('progress'))jobs.push(run(SB.from('progress').select('task_id,student_id,status,tasks!inner(deadline)').gte('tasks.deadline',cut)).then(v=>{out.progress=v.map(x=>({taskId:x.task_id,studentId:x.student_id,status:x.status}))}));
+    if(!only)jobs.push(ins?run(SB.from('profiles').select('id,name').eq('role','student')).then(v=>{out.students=v}):Promise.resolve(out.students=[]));
+    await Promise.all(jobs);return out;
+  },
+  saveTask:p=>run(SB.from('tasks').insert({department:p.department,title:p.title,description:p.description,deadline:p.deadline,links:parseLinks(p.links)})),
+  deleteTask:p=>run(SB.from('tasks').delete().eq('id',p.id)),
+  setProgress:p=>run(SB.from('progress').upsert({task_id:p.taskId,student_id:S.user.id,status:p.status},{onConflict:'task_id,student_id'})),
+  addAnnouncement:p=>run(SB.from('announcements').insert({department:p.department,title:p.title,body:p.body})),
+  deleteAnnouncement:p=>run(SB.from('announcements').delete().eq('id',p.id)),
+  addFeedback:p=>{const t=S.data.tasks.find(x=>x.id===p.taskId);return run(SB.from('feedback').insert({department:t.department,task_id:p.taskId,student_id:p.studentId,text:p.text}))},
+  addSession:p=>{if(!okLink(p.link))throw new Error('Link must start with http:// or https://');return run(SB.from('sessions').insert({track:p.track,title:p.title,link:p.link,date:p.date}))},
+  deleteSession:p=>run(SB.from('sessions').delete().eq('id',p.id))
+};
+/* live updates: any change in the database triggers a refresh */
+function subscribe(){
+  if(!SB||S.ch)return;
+  S.ch=SB.channel('portal').on('postgres_changes',{event:'*',schema:'public'},pl=>{
+    (S.pend=S.pend||new Set()).add(pl.table);
+    if(pl.table==='tasks'){S.pend.add('progress');S.pend.add('feedback')} /* deleting a task cascades */
+    clearTimeout(S.t);S.t=setTimeout(()=>{const o=S.pend;S.pend=null;refresh(false,o)},300);
+  }).subscribe(st=>{S.live=st==='SUBSCRIBED'});
 }
 
 /* ===== Demo backend (localStorage). Mirrors Code.gs so the UI can be tried instantly ===== */
@@ -258,35 +302,36 @@ const Demo={
 };
 
 /* ===== session + login ===== */
-$('#demoNote').hidden=!!CONFIG.API_URL;
+$('#demoNote').hidden=LIVE;
 $('#loginForm').onsubmit=async e=>{
   e.preventDefault();$('#loginErr').textContent='';$('#loginBtn').disabled=true;
   try{
     const r=await api('login',{username:$('#u').value.trim().toLowerCase(),password:$('#p').value});
-    S.token=r.token;S.user=r.user;try{sessionStorage.setItem('gdg_session',JSON.stringify(r))}catch(e){}
+    S.token=r.token;S.user=r.user;if(!LIVE)try{sessionStorage.setItem('gdg_session',JSON.stringify(r))}catch(e){}
     await enter();
   }catch(err){$('#loginErr').textContent=err.message}
   $('#loginBtn').disabled=false;
 };
 $('#logout').onclick=logout;
-function logout(){S={token:null,user:null,dept:null,data:null,sig:''};try{sessionStorage.removeItem('gdg_session')}catch(e){}$('#app').hidden=true;$('#login').hidden=false;$('#p').value=''}
+function logout(){if(SB){SB.removeAllChannels();SB.auth.signOut()}S={token:null,user:null,dept:null,data:null,sig:'',days:90};try{sessionStorage.removeItem('gdg_session')}catch(e){}$('#app').hidden=true;$('#login').hidden=false;$('#p').value=''}
 async function enter(){
   const D=deptsOf(S.user);S.dept=D[0];
   $('#login').hidden=true;$('#app').hidden=false;
   $('#whoName').textContent=S.user.name;
   $('#roleLine').innerHTML=`<span class="chip">${S.user.role==='instructor'?'Instructor':'Student'}</span>`;
+  subscribe();
   await refresh(true);
 }
 
 /* ===== data refresh (polling = changes appear without reloading) ===== */
-async function refresh(force){
+async function refresh(force,only){
   if(!S.token)return;
   try{
-    const d=await api('getAll');const sig=JSON.stringify(d);
+    const d=await api('getAll',{only});const sig=JSON.stringify(d);
     if(force||sig!==S.sig){S.sig=sig;S.data=d;if(!$('#dlg').open)render()}
   }catch(e){if(e.message==='SESSION'||/session/i.test(e.message)){toast('Session expired. Please sign in again.');logout()}}
 }
-setInterval(()=>{if(!document.hidden)refresh()},CONFIG.POLL_MS);
+setInterval(()=>{if(!document.hidden&&!S.live)refresh()},CONFIG.POLL_MS); /* with live updates working, no polling at all */
 window.addEventListener('storage',()=>refresh());
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 async function act(action,payload,msg){
@@ -341,6 +386,7 @@ function render(){
   bind(tasks,studs);
 }
 function bind(tasks,studs){
+  if(LIVE&&S.days<3650){const b=document.createElement('button');b.className='btn ghost sm';b.style.marginTop='12px';b.textContent=`Showing the last ${S.days} days. Show older tasks`;b.onclick=()=>{S.days=3650;toast('Loading older tasks...');refresh(true)};$('#tasksPanel').append(b)}
   const q=(s,f)=>document.querySelectorAll(s).forEach(f);
   q('[data-prog]',b=>b.onclick=()=>act('setProgress',{taskId:b.dataset.prog,status:b.dataset.s},'Progress saved'));
   q('[data-deltask]',b=>b.onclick=()=>{if(confirm('Delete this task, its progress and feedback?'))act('deleteTask',{id:b.dataset.deltask},'Task deleted')});
@@ -374,7 +420,9 @@ function form(title,fields,onSubmit){
 }
 
 /* ===== restore session on reload ===== */
-(async()=>{try{const r=JSON.parse(sessionStorage.getItem('gdg_session'));if(r){S.token=r.token;S.user=r.user;await enter()}}catch(e){}})();
+(async()=>{try{
+  if(LIVE){if(!SB)return;const{data}=await SB.auth.getSession();if(data.session){S.token=data.session.access_token;S.user=await run(SB.from('profiles').select('id,name,role').eq('id',data.session.user.id).single());await enter()}return}
+  const r=JSON.parse(sessionStorage.getItem('gdg_session'));if(r){S.token=r.token;S.user=r.user;await enter()}}catch(e){}})();
 (function(){const c=document.querySelector('.deco.conf'),cols=['#e8a317','#1f5bd6','#e8453c','#146c54'];
 c.innerHTML=Array.from({length:9},(_,i)=>`<i style="left:${i*11}%;top:${(i*17)%40}px;--r:${(i*47)%90}deg;background:${cols[i%4]}"></i>`).join('')})();
 </script>
