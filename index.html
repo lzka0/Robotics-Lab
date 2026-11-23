@@ -6,15 +6,15 @@
 <title>GDG On Campus Zagazig · Robotics Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#ece3cd;--card:rgba(255,251,240,.78);--ink:#2b2438;--mute:#6f6679;--orange:#cd5c33;--yellow:#e8a317;--green:#146c54;--blue:#1f5bd6;--red:#e8453c;--accent:var(--blue);--line:rgba(43,36,56,.18)}
 body[data-dept=Hardware]{--accent:var(--orange)}body[data-dept=Mechanical]{--accent:var(--green)}body[data-dept=Sessions]{--accent:#a66d00}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{font-family:Nunito,system-ui,sans-serif;color:var(--ink);min-height:100vh;line-height:1.5;
+body{font-family:Nunito,Cairo,system-ui,sans-serif;color:var(--ink);min-height:100vh;line-height:1.5;
 background:radial-gradient(ellipse at center,transparent 55%,rgba(150,120,70,.28)),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .25 0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"),var(--paper);background-attachment:fixed}
-h1,h2,h3{font-family:'Lilita One',Nunito,sans-serif;font-weight:400;margin:0;letter-spacing:.01em}
+h1,h2,h3{font-family:'Lilita One',Nunito,Cairo,sans-serif;font-weight:400;margin:0;letter-spacing:.01em}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 [hidden]{display:none!important}
@@ -80,7 +80,7 @@ header.top h1{font-size:clamp(1.5rem,3.5vw,2.3rem)}
 .item{border:1.5px solid var(--line);background:#fffdf6;border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .item:last-child{margin-bottom:0}
 .item h3{font-size:1.1rem;margin-bottom:2px}
-.item p{margin:4px 0 8px}
+.item p{margin:4px 0 8px;overflow-wrap:anywhere}.got{color:var(--green);font-weight:800}.got small{font-size:.72rem;font-weight:700}.item h3,.item p{text-align:start}
 .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.85rem;color:var(--mute);font-weight:700}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .bar{height:10px;border:1.5px solid var(--ink);border-radius:9px;overflow:hidden;background:#fff;margin:6px 0 2px}
@@ -97,7 +97,7 @@ header.top h1{font-size:clamp(1.5rem,3.5vw,2.3rem)}
 .arcs{position:fixed;right:0;bottom:0;width:150px;height:150px;pointer-events:none}
 dialog{border:2px solid var(--ink);border-radius:20px;padding:24px;width:min(480px,92vw);background:#fbf6e8;box-shadow:8px 8px 0 var(--ink)}
 dialog::backdrop{background:rgba(43,36,56,.5)}
-dialog h2{margin-bottom:14px}
+dialog h2{margin-bottom:14px}dialog.wide{width:min(640px,94vw);padding:30px;max-height:88vh;overflow:auto}dialog.wide h2{font-size:1.6rem}dialog.wide .item{padding:16px 18px}dialog.wide .item p{font-size:1.08rem}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:12px;font-weight:700;z-index:99;max-width:90vw}
 @media(max-width:860px){.grid{grid-template-columns:1fr}.dots,.deco.half,.arcs{display:none}}
 @media(max-width:520px){.deco.el{width:110px;height:100px}.login-card{padding:20px}}
@@ -155,7 +155,7 @@ dialog h2{margin-bottom:14px}
 <script>
 /* ===== CONFIG ===== paste your Supabase Project URL and anon (publishable) key. Leave empty for demo mode.
    Never put the service_role key here. EMAIL_DOMAIN must match the domain used for the Auth users you create. */
-const CONFIG={SUPABASE_URL:'https://bjenydglytmtulumtomi.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_6JSQhNKwsNrEcoikUGglLw_k1BjFgJM',EMAIL_DOMAIN:'gdg-portal.app',POLL_MS:30000};
+const CONFIG={SUPABASE_URL:'',SUPABASE_ANON_KEY:'',EMAIL_DOMAIN:'gdg-portal.app',POLL_MS:30000};
 const LIVE=!!(CONFIG.SUPABASE_URL&&CONFIG.SUPABASE_ANON_KEY);
 const SB=LIVE&&window.supabase?window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY):null;
 
@@ -213,7 +213,11 @@ const Supa={
   setProgress:p=>run(SB.from('progress').upsert({task_id:p.taskId,student_id:S.user.id,status:p.status},{onConflict:'task_id,student_id'})),
   addAnnouncement:p=>run(SB.from('announcements').insert({department:p.department,title:p.title,body:p.body})),
   deleteAnnouncement:p=>run(SB.from('announcements').delete().eq('id',p.id)),
-  addFeedback:p=>{const t=S.data.tasks.find(x=>x.id===p.taskId);return run(SB.from('feedback').insert({department:t.department,task_id:p.taskId,student_id:p.studentId,text:p.text}))},
+  addFeedback:async p=>{const t=S.data.tasks.find(x=>x.id===p.taskId);
+    await run(SB.from('feedback').insert({department:t.department,task_id:p.taskId,student_id:p.studentId,text:p.text}));
+    try{await run(SB.from('progress').upsert({task_id:p.taskId,student_id:p.studentId,status:'Done'},{onConflict:'task_id,student_id'}))}
+    catch(e){throw new Error('Feedback saved, but progress was not set to Done. Run supabase/migration_feedback.sql.')}},
+  editFeedback:p=>run(SB.from('feedback').update({text:p.text}).eq('id',p.id)),
   addSession:p=>{if(!okLink(p.link))throw new Error('Link must start with http:// or https://');return run(SB.from('sessions').insert({track:p.track,title:p.title,link:p.link,date:p.date}))},
   deleteSession:p=>run(SB.from('sessions').delete().eq('id',p.id))
 };
@@ -290,7 +294,8 @@ const Demo={
       case'addAnnouncement':need();allow(b.department);db.announcements.push({id:id(),department:b.department,title:b.title,body:b.body,date:today(),author:u.name});break;
       case'deleteAnnouncement':need();{const a=db.announcements.find(x=>x.id===b.id);if(a)allow(a.department);db.announcements=db.announcements.filter(x=>x.id!==b.id)}break;
       case'addFeedback':need();{const t=db.tasks.find(x=>x.id===b.taskId);if(!t)throw new Error('Task not found.');allow(t.department);
-        db.feedback.push({id:id(),department:t.department,taskId:t.id,studentId:b.studentId,text:b.text,date:today(),author:u.name})}break;
+        db.feedback.push({id:id(),department:t.department,taskId:t.id,studentId:b.studentId,text:b.text,date:today(),author:u.name});{const pr=db.progress.find(x=>x.taskId===t.id&&x.studentId===b.studentId);pr?pr.status='Done':db.progress.push({taskId:t.id,studentId:b.studentId,status:'Done'})}}break;
+      case'editFeedback':need();{const f=db.feedback.find(x=>x.id===b.id);if(!f)throw new Error('Feedback not found.');allow(f.department);f.text=b.text}break;
       case'addSession':need();if(!/^https?:\/\//i.test(String(b.link)))throw new Error('Link must start with http:// or https://');
         if(![...D,'General'].includes(b.track))throw new Error('Bad track.');
         db.sessions.push({id:id(),track:b.track,title:b.title,link:b.link,date:b.date,author:u.name});break;
@@ -343,6 +348,9 @@ const me=()=>S.user,isIns=()=>me().role==='instructor';
 const stat=(tid,sid)=>(S.data.progress.find(p=>p.taskId===tid&&p.studentId===sid)||{}).status||'To do';
 const chipFor=s=>({'To do':'todo','In progress':'doing','Done':'done'}[s]);
 const name=id=>(S.data.students.find(s=>s.id===id)||{}).name||'Student';
+const fbBy=(tid,sid)=>[...new Set(S.data.feedback.filter(f=>f.taskId===tid&&f.studentId===sid).map(f=>f.author))];
+const studLabel=(tid,s)=>{const a=fbBy(tid,s.id);return a.length?`<span class="got"><bdi>${esc(s.name)}</bdi> <small>feedback by <bdi>${esc(a.join(', '))}</bdi></small></span>`:`<bdi>${esc(s.name)}</bdi>`};
+const nfb=tid=>{const n=S.data.feedback.filter(f=>f.taskId===tid&&f.studentId===me().id).length;return n?` (${n})`:''};
 function render(){
   const D=deptsOf(me()),d=S.dept,data=S.data;
   document.body.dataset.dept=d;
@@ -370,30 +378,34 @@ function render(){
         const done=studs.filter(s=>stat(t.id,s.id)==='Done').length,pct=studs.length?Math.round(done/studs.length*100):0;
         return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late?'late':''}">Due ${fmt(t.deadline)}</span></div><p>${esc(t.description)}</p>${linksHtml(t.links)}
         <div class="meta">${done} of ${studs.length} students done</div><div class="bar"><i style="width:${pct}%"></i></div>
-        <details><summary class="meta" style="cursor:pointer">Student progress</summary>${studs.map(s=>`<div class="meta">${esc(s.name)}: <span class="chip ${chipFor(stat(t.id,s.id))}">${stat(t.id,s.id)}</span></div>`).join('')||'<div class="meta">No students yet.</div>'}</details>
+        <details><summary class="meta" style="cursor:pointer">Student progress</summary>${studs.map(s=>`<div class="meta">${studLabel(t.id,s)}: <span class="chip ${chipFor(stat(t.id,s.id))}">${stat(t.id,s.id)}</span></div>`).join('')||'<div class="meta">No students yet.</div>'}</details>
         <div class="acts"><button class="btn sm" data-fb="${t.id}">Give feedback</button><button class="btn sm danger" data-deltask="${t.id}">Delete</button></div></article>`;
       }
       const st=stat(t.id,me().id);
       return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late&&st!=='Done'?'late':''}">Due ${fmt(t.deadline)}</span><span class="chip ${chipFor(st)}">${st}</span></div><p>${esc(t.description)}</p>${linksHtml(t.links)}
-      <div class="status" role="group" aria-label="Progress for ${esc(t.title)}">${STATUSES.map(x=>`<button data-prog="${t.id}" data-s="${x}" aria-pressed="${x===st}">${x}</button>`).join('')}</div></article>`;
+      <div class="status" role="group" aria-label="Progress for ${esc(t.title)}">${STATUSES.map(x=>`<button data-prog="${t.id}" data-s="${x}" aria-pressed="${x===st}">${x}</button>`).join('')}</div>
+      <div class="acts"><button class="btn ghost sm" data-vf="${t.id}">Feedback${nfb(t.id)}</button></div></article>`;
     }).join('')||`<div class="empty">${isIns()?'No tasks yet. Add the first one.':'No tasks assigned yet.'}</div>`);
   /* announcements */
   $('#annPanel').innerHTML=`<header><h2>Announcements</h2>${isIns()?'<button class="btn sm" id="addAnn">+ Post</button>':''}</header>`+
-    (ann.map(a=>`<article class="item"><h3>${esc(a.title)}</h3><p>${esc(a.body)}</p><div class="meta">${esc(a.author)} · ${fmt(a.date)}</div>${isIns()?`<div class="acts"><button class="btn sm danger" data-delann="${a.id}">Delete</button></div>`:''}</article>`).join('')||'<div class="empty">No announcements yet.</div>');
+    (ann.map(a=>`<article class="item"><h3>${esc(a.title)}</h3><p>${esc(a.body)}</p><div class="meta"><bdi>${esc(a.author)}</bdi> · ${fmt(a.date)}</div>${isIns()?`<div class="acts"><button class="btn sm danger" data-delann="${a.id}">Delete</button></div>`:''}</article>`).join('')||'<div class="empty">No announcements yet.</div>');
   /* feedback */
   $('#fbPanel').innerHTML=`<header><h2>Feedback</h2></header>`+
-    (fb.map(f=>{const t=data.tasks.find(x=>x.id===f.taskId);return`<article class="item fb"><div class="meta">${isIns()?`<b>${esc(name(f.studentId))}</b> on `:''}<b>${esc(t?t.title:'Task')}</b></div><p>${esc(f.text)}</p><div class="meta">${esc(f.author)} · ${fmt(f.date)}</div></article>`}).join('')||`<div class="empty">${isIns()?'Feedback you give will show here.':'No feedback yet. Keep going!'}</div>`);
-  bind(tasks,studs);
+    (fb.map(f=>{const t=data.tasks.find(x=>x.id===f.taskId);return`<article class="item fb"><div class="meta">${isIns()?`<b><bdi>${esc(name(f.studentId))}</bdi></b> on `:''}<b><bdi>${esc(t?t.title:'Task')}</bdi></b></div><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div>${isIns()?`<div class="acts"><button class="btn sm ghost" data-editfb="${f.id}">Edit</button></div>`:''}</article>`}).join('')||`<div class="empty">${isIns()?'Feedback you give will show here.':'No feedback yet. Keep going!'}</div>`);
+  bind(tasks,studs);autoDir();
 }
 function bind(tasks,studs){
   if(LIVE&&S.days<3650){const b=document.createElement('button');b.className='btn ghost sm';b.style.marginTop='12px';b.textContent=`Showing the last ${S.days} days. Show older tasks`;b.onclick=()=>{S.days=3650;toast('Loading older tasks...');refresh(true)};$('#tasksPanel').append(b)}
   const q=(s,f)=>document.querySelectorAll(s).forEach(f);
   q('[data-prog]',b=>b.onclick=()=>act('setProgress',{taskId:b.dataset.prog,status:b.dataset.s},'Progress saved'));
+  q('[data-vf]',b=>b.onclick=()=>{const t=S.data.tasks.find(x=>x.id===b.dataset.vf),l=S.data.feedback.filter(f=>f.taskId===b.dataset.vf&&f.studentId===me().id).sort((a,c)=>c.date.localeCompare(a.date));
+    info(`Feedback: ${t?t.title:'Task'}`,l.length?l.map(f=>`<div class="item fb"><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div></div>`).join(''):'<div class="empty">No feedback on this task yet.</div>')});
+  q('[data-editfb]',b=>b.onclick=()=>{const f=S.data.feedback.find(x=>x.id===b.dataset.editfb);if(f)form('Edit feedback',[{n:'text',l:'Feedback',t:'textarea',v:f.text}],v=>act('editFeedback',{id:f.id,text:v.text},'Feedback updated'))});
   q('[data-deltask]',b=>b.onclick=()=>{if(confirm('Delete this task, its progress and feedback?'))act('deleteTask',{id:b.dataset.deltask},'Task deleted')});
   q('[data-delann]',b=>b.onclick=()=>{if(confirm('Delete this announcement?'))act('deleteAnnouncement',{id:b.dataset.delann},'Announcement deleted')});
   q('[data-fb]',b=>b.onclick=()=>{
     if(!studs.length)return toast('No students in this department yet.');
-    form('Give feedback',[{n:'studentId',l:'Student',t:'select',o:studs.map(s=>[s.id,s.name])},{n:'text',l:'Feedback',t:'textarea'}],v=>act('addFeedback',{taskId:b.dataset.fb,...v},'Feedback sent'));
+    form('Give feedback',[{n:'studentId',l:'Student',t:'select',o:studs.map(s=>{const a=fbBy(b.dataset.fb,s.id);return a.length?[s.id,`✓ ${s.name} (feedback by ${a.join(', ')})`,'#146c54']:[s.id,s.name]})},{n:'text',l:'Feedback',t:'textarea'}],v=>act('addFeedback',{taskId:b.dataset.fb,...v},'Feedback sent'));
   });
   const at=$('#addTask');if(at)at.onclick=()=>form(`New ${S.dept} task`,[{n:'title',l:'Title'},{n:'description',l:'Description',t:'textarea'},{n:'deadline',l:'Deadline',t:'date',v:iso(7)},{n:'links',l:'Task links (optional, one per line)',t:'textarea',req:false}],v=>act('saveTask',{department:S.dept,...v},'Task published'));
   const aa=$('#addAnn');if(aa)aa.onclick=()=>form(`New ${S.dept} announcement`,[{n:'title',l:'Title'},{n:'body',l:'Message',t:'textarea'}],v=>act('addAnnouncement',{department:S.dept,...v},'Announcement posted'));
@@ -404,16 +416,29 @@ function renderSessions(){
   const list=[...S.data.sessions].sort((a,b)=>b.date.localeCompare(a.date)),up=list.filter(x=>x.date>=today()).length;
   $('#stats').innerHTML=[[list.length,'Sessions','--blue'],[up,'Upcoming','--green']].map(([n,l,c])=>`<div class="stat" style="--c:var(${c})"><b>${n}</b><span>${l}</span></div>`).join('');
   $('#sessPanel').innerHTML=`<header><h2>Lecture sessions</h2>${isIns()?'<button class="btn sm" id="addSess">+ Add session</button>':''}</header>`+
-    (list.map(x=>`<article class="item"><h3>${esc(x.title)}</h3><div class="meta"><span class="chip">${esc(x.track)}</span><span>${fmt(x.date)}</span><span>${esc(x.author)}</span></div><div class="acts">${/^https?:\/\//i.test(x.link)?`<a class="btn sm" href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">Open lecture link</a>`:''}${isIns()?`<button class="btn sm danger" data-delsess="${x.id}">Delete</button>`:''}</div></article>`).join('')||'<div class="empty">No sessions yet.</div>');
+    (list.map(x=>`<article class="item"><h3>${esc(x.title)}</h3><div class="meta"><span class="chip">${esc(x.track)}</span><span>${fmt(x.date)}</span><span><bdi>${esc(x.author)}</bdi></span></div><div class="acts">${/^https?:\/\//i.test(x.link)?`<a class="btn sm" href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">Open lecture link</a>`:''}${isIns()?`<button class="btn sm danger" data-delsess="${x.id}">Delete</button>`:''}</div></article>`).join('')||'<div class="empty">No sessions yet.</div>');
   document.querySelectorAll('[data-delsess]').forEach(b=>b.onclick=()=>{if(confirm('Delete this session?'))act('deleteSession',{id:b.dataset.delsess},'Session deleted')});
   const a=$('#addSess');if(a)a.onclick=()=>form('New session',[{n:'title',l:'Title'},{n:'track',l:'Track',t:'select',o:[...DEPTS,'General'].map(x=>[x,x])},{n:'date',l:'Date',t:'date',v:iso(1)},{n:'link',l:'Lecture link (https://...)',t:'url'}],v=>act('addSession',v,'Session added'));
+  autoDir();
 }
+
+/* ===== mixed Arabic/English text: each block takes its direction from its own first strong character ===== */
+function autoDir(){document.querySelectorAll('.item h3,.item p,.empty,#dlgTitle,dialog textarea,dialog input[type=text]').forEach(e=>e.setAttribute('dir','auto'))}
+/* read-only dialog */
+function info(title,html){
+  $('#dlgTitle').textContent=title;$('#dlgErr').textContent='';$('#dlgFields').innerHTML=html;
+  $('#dlgOk').hidden=true;$('#dlgCancel').textContent='Close';
+  const dlg=$('#dlg');dlg.classList.add('wide');$('#dlgCancel').onclick=()=>dlg.close();$('#dlgForm').onsubmit=e=>{e.preventDefault();dlg.close()};
+  autoDir();dlg.showModal();
+}
+$('#dlg').addEventListener('close',()=>{if(S.data&&S.token)render()});
 
 /* ===== reusable modal form ===== */
 function form(title,fields,onSubmit){
-  $('#dlgTitle').textContent=title;$('#dlgErr').textContent='';
-  $('#dlgFields').innerHTML=fields.map(f=>`<label class="field">${f.l}${f.t==='textarea'?`<textarea name="${f.n}" ${f.req===false?'':'required'}></textarea>`:f.t==='select'?`<select name="${f.n}" required>${f.o.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select>`:`<input name="${f.n}" type="${f.t||'text'}" value="${esc(f.v||'')}" required>`}</label>`).join('');
+  $('#dlgTitle').textContent=title;$('#dlgErr').textContent='';$('#dlgOk').hidden=false;$('#dlgCancel').textContent='Cancel';$('#dlg').classList.remove('wide');
+  $('#dlgFields').innerHTML=fields.map(f=>`<label class="field">${f.l}${f.t==='textarea'?`<textarea name="${f.n}" ${f.req===false?'':'required'}>${esc(f.v||'')}</textarea>`:f.t==='select'?`<select name="${f.n}" required>${f.o.map(([v,l,c])=>`<option value="${esc(v)}"${c?` style="color:${c}"`:''}>${esc(l)}</option>`).join('')}</select>`:`<input name="${f.n}" type="${f.t||'text'}" value="${esc(f.v||'')}" required>`}</label>`).join('');
   const dlg=$('#dlg');
+  autoDir();
   $('#dlgCancel').onclick=()=>{dlg.close();refresh(true)};
   $('#dlgForm').onsubmit=e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.target));for(const k in v)if(typeof v[k]==='string')v[k]=v[k].trim();dlg.close();onSubmit(v)};
   dlg.showModal();dlg.querySelector('input,textarea,select').focus();
