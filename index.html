@@ -80,7 +80,7 @@ header.top h1{font-size:clamp(1.5rem,3.5vw,2.3rem)}
 .item{content-visibility:auto;contain-intrinsic-size:auto 150px;border:1.5px solid var(--line);background:#fffdf6;border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .item:last-child{margin-bottom:0}
 .item h3{font-size:1.1rem;margin-bottom:2px}
-.item p{margin:4px 0 8px;overflow-wrap:anywhere;white-space:pre-wrap}.got{color:var(--green);font-weight:800}.got small{font-size:.72rem;font-weight:700}.item h3,.item p{text-align:start}.scroll{max-height:520px;overflow-y:auto;padding-right:6px}#qres{max-height:300px;overflow-y:auto}.sbox{width:100%;border:2px solid var(--ink);border-radius:12px;padding:10px 14px;background:#fffdf6}.res{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.item p{margin:4px 0 8px;overflow-wrap:anywhere}.ln{display:block;min-height:1.2em;white-space:pre-wrap}.got{color:var(--green);font-weight:800}.got small{font-size:.72rem;font-weight:700}.item h3,.item p{text-align:start}.scroll{max-height:520px;overflow-y:auto;padding-right:6px}#qres{max-height:300px;overflow-y:auto}.sbox{width:100%;border:2px solid var(--ink);border-radius:12px;padding:10px 14px;background:#fffdf6}.res{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
 .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.85rem;color:var(--mute);font-weight:700}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .bar{height:10px;border:1.5px solid var(--ink);border-radius:9px;overflow:hidden;background:#fff;margin:6px 0 2px}
@@ -220,7 +220,8 @@ const Supa={
     catch(e){throw new Error('Feedback saved, but progress was not set to Done. Run supabase/migration_feedback.sql.')}},
   editFeedback:p=>run(SB.from('feedback').update({text:p.text}).eq('id',p.id)),
   deleteFeedback:p=>run(SB.from('feedback').delete().eq('id',p.id)),
-  addSession:p=>{if(!okLink(p.link))throw new Error('Link must start with http:// or https://');return run(SB.from('sessions').insert({track:p.track,title:p.title,link:p.link,date:p.date}))},
+  addSession:async p=>{if(!okLink(p.link))throw new Error('Recording link must start with http:// or https://');const row={track:p.track,title:p.title,link:p.link,date:p.date},extra=parseLinks(p.links);if(extra)row.links=extra;
+    try{await run(SB.from('sessions').insert(row))}catch(e){if(extra&&/links/i.test(e.message))throw new Error('Run supabase/migration_session_links.sql in Supabase first.');throw e}},
   deleteSession:p=>run(SB.from('sessions').delete().eq('id',p.id))
 };
 /* live updates: any change in the database triggers a refresh */
@@ -301,7 +302,7 @@ const Demo={
       case'editFeedback':need();{const f=db.feedback.find(x=>x.id===b.id);if(!f)throw new Error('Feedback not found.');allow(f.department);f.text=b.text}break;
       case'addSession':need();if(!/^https?:\/\//i.test(String(b.link)))throw new Error('Link must start with http:// or https://');
         if(![...D,'General'].includes(b.track))throw new Error('Bad track.');
-        db.sessions.push({id:id(),track:b.track,title:b.title,link:b.link,date:b.date,author:u.name});break;
+        db.sessions.push({id:id(),track:b.track,title:b.title,link:b.link,links:parseLinks(b.links),date:b.date,author:u.name});break;
       case'deleteSession':need();db.sessions=db.sessions.filter(x=>x.id!==b.id);break;
       default:throw new Error('Unknown action.');
     }
@@ -347,6 +348,8 @@ async function act(action,payload,msg){
 }
 
 /* ===== render ===== */
+/* multi-line text: every line picks its own direction; runs of numbers (1 2 3 ...) always read left to right */
+const rich=t=>String(t??'').split(/\r?\n/).map(l=>`<span class="ln" dir="auto">${esc(l).replace(/\d+(?:[ \t,\-\u2013]+\d+)+/g,m=>`<bdi dir="ltr">${m}</bdi>`)||'&#8203;'}</span>`).join('');
 const me=()=>S.user,isIns=()=>me().role==='instructor';
 /* newest first: by date, then by exact time when the database has created_at */
 const ck=x=>String(x.createdAt||x.created_at||'');
@@ -382,22 +385,22 @@ function render(){
       const late=t.deadline<today();
       if(isIns()){
         const done=studs.filter(s=>stat(t.id,s.id)==='Done').length,pct=studs.length?Math.round(done/studs.length*100):0;
-        return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late?'late':''}">Due ${fmt(t.deadline)}</span></div><p>${esc(t.description)}</p>${linksHtml(t.links)}
+        return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late?'late':''}">Due ${fmt(t.deadline)}</span></div><p>${rich(t.description)}</p>${linksHtml(t.links)}
         <div class="meta">${done} of ${studs.length} students done</div><div class="bar"><i style="width:${pct}%"></i></div>
         <details data-pl="${t.id}"><summary class="meta" style="cursor:pointer">Student progress</summary></details>
         <div class="acts"><button class="btn sm" data-fb="${t.id}">Give feedback</button><button class="btn sm danger" data-deltask="${t.id}">Delete</button></div></article>`;
       }
       const st=stat(t.id,me().id);
-      return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late&&st!=='Done'?'late':''}">Due ${fmt(t.deadline)}</span><span class="chip ${chipFor(st)}">${st}</span></div><p>${esc(t.description)}</p>${linksHtml(t.links)}
+      return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late&&st!=='Done'?'late':''}">Due ${fmt(t.deadline)}</span><span class="chip ${chipFor(st)}">${st}</span></div><p>${rich(t.description)}</p>${linksHtml(t.links)}
       <div class="status" role="group" aria-label="Progress for ${esc(t.title)}">${STATUSES.map(x=>`<button data-prog="${t.id}" data-s="${x}" aria-pressed="${x===st}">${x}</button>`).join('')}</div>
       <div class="acts"><button class="btn ghost sm" data-vf="${t.id}">Feedback${nfb(t.id)}</button></div></article>`;
     }).join('')||`<div class="empty">${isIns()?'No tasks yet. Add the first one.':'No tasks assigned yet.'}</div>`)+(tasks.length>(S.taskN||10)?'<button class="btn ghost sm" id="taskMore" style="margin-top:12px">Load more tasks</button>':'');
   /* announcements */
   $('#annPanel').innerHTML=`<header><h2>Announcements</h2>${isIns()?'<button class="btn sm" id="addAnn">+ Post</button>':''}</header>`+
-    (ann.map(a=>`<article class="item"><h3>${esc(a.title)}</h3><p>${esc(a.body)}</p><div class="meta"><bdi>${esc(a.author)}</bdi> · ${fmt(a.date)}</div>${isIns()?`<div class="acts"><button class="btn sm danger" data-delann="${a.id}">Delete</button></div>`:''}</article>`).join('')||'<div class="empty">No announcements yet.</div>');
+    (ann.map(a=>`<article class="item"><h3>${esc(a.title)}</h3><p>${rich(a.body)}</p><div class="meta"><bdi>${esc(a.author)}</bdi> · ${fmt(a.date)}</div>${isIns()?`<div class="acts"><button class="btn sm danger" data-delann="${a.id}">Delete</button></div>`:''}</article>`).join('')||'<div class="empty">No announcements yet.</div>');
   /* feedback */
   $('#fbPanel').innerHTML=`<header><h2>Feedback</h2></header><div class="scroll">`+
-    (fb.slice(0,S.fbN||10).map(f=>{const t=data.tasks.find(x=>x.id===f.taskId);return`<article class="item fb"><div class="meta">${isIns()?`<b><bdi>${esc(name(f.studentId))}</bdi></b> on `:''}<b><bdi>${esc(t?t.title:'Task')}</bdi></b></div><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div>${isIns()?`<div class="acts"><button class="btn sm ghost" data-editfb="${f.id}">Edit</button><button class="btn sm danger" data-dfb="${f.id}">Delete</button></div>`:''}</article>`}).join('')||`<div class="empty">${isIns()?'Feedback you give will show here.':'No feedback yet. Keep going!'}</div>`)+(fb.length>(S.fbN||10)?'<button class="btn ghost sm" id="fbMore" style="margin-top:12px">Load more feedback</button>':(LIVE&&S.days<3650&&fb.length?'<button class="btn ghost sm" id="fbMore" style="margin-top:12px">Load older feedback</button>':''))+'</div>';
+    (fb.slice(0,S.fbN||10).map(f=>{const t=data.tasks.find(x=>x.id===f.taskId);return`<article class="item fb"><div class="meta">${isIns()?`<b><bdi>${esc(name(f.studentId))}</bdi></b> on `:''}<b><bdi>${esc(t?t.title:'Task')}</bdi></b></div><p>${rich(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div>${isIns()?`<div class="acts"><button class="btn sm ghost" data-editfb="${f.id}">Edit</button><button class="btn sm danger" data-dfb="${f.id}">Delete</button></div>`:''}</article>`}).join('')||`<div class="empty">${isIns()?'Feedback you give will show here.':'No feedback yet. Keep going!'}</div>`)+(fb.length>(S.fbN||10)?'<button class="btn ghost sm" id="fbMore" style="margin-top:12px">Load more feedback</button>':(LIVE&&S.days<3650&&fb.length?'<button class="btn ghost sm" id="fbMore" style="margin-top:12px">Load older feedback</button>':''))+'</div>';
   const fm=$('#fbMore');if(fm)fm.onclick=()=>{if(fb.length>(S.fbN||10)){S.fbN=(S.fbN||10)+10;render()}else{S.days=3650;toast('Loading older feedback...');refresh(true)}};
   const tm=$('#taskMore');if(tm)tm.onclick=()=>{S.taskN=(S.taskN||10)+10;render()};
   bind(tasks,studs);initSearch();autoDir();
@@ -407,7 +410,7 @@ function bind(tasks,studs){
   const q=(s,f)=>document.querySelectorAll(s).forEach(f);
   q('[data-prog]',b=>b.onclick=()=>act('setProgress',{taskId:b.dataset.prog,status:b.dataset.s},'Progress saved'));
   q('[data-vf]',b=>b.onclick=()=>{const t=S.data.tasks.find(x=>x.id===b.dataset.vf),l=S.data.feedback.filter(f=>f.taskId===b.dataset.vf&&f.studentId===me().id).sort(newest);
-    info(`Feedback: ${t?t.title:'Task'}`,l.length?l.map(f=>`<div class="item fb"><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div></div>`).join(''):'<div class="empty">No feedback on this task yet.</div>')});
+    info(`Feedback: ${t?t.title:'Task'}`,l.length?l.map(f=>`<div class="item fb"><p>${rich(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div></div>`).join(''):'<div class="empty">No feedback on this task yet.</div>')});
   q('[data-editfb]',b=>b.onclick=()=>{const f=S.data.feedback.find(x=>x.id===b.dataset.editfb);if(f)form('Edit feedback',[{n:'text',l:'Feedback',t:'textarea',v:f.text}],v=>act('editFeedback',{id:f.id,text:v.text},'Feedback updated'))});
   q('[data-pl]',d=>d.addEventListener('toggle',()=>{if(d.open&&!d.dataset.f){d.dataset.f=1;d.insertAdjacentHTML('beforeend',studs.map(s=>`<div class="meta">${studLabel(d.dataset.pl,s)}: <span class="chip ${chipFor(stat(d.dataset.pl,s.id))}">${stat(d.dataset.pl,s.id)}</span></div>`).join('')||'<div class="meta">No students yet.</div>')}}));
   q('[data-dfb]',b=>b.onclick=()=>{if(confirm('Delete this feedback?'))act('deleteFeedback',{id:b.dataset.dfb},'Feedback deleted')});
@@ -422,13 +425,17 @@ function bind(tasks,studs){
 }
 
 /* ===== sessions tab (lecture links) ===== */
+/* session links: the recording first, then the additional links, all styled like task links */
+const sessLinks=x=>{const a=(l,t)=>`<a class="btn ghost sm" href="${esc(l)}" target="_blank" rel="noopener noreferrer">${t} &#8599;</a>`,
+  r=okLink(x.link)?a(x.link,'Session recording'):'',e=linkList(x.links).filter(okLink).map(u=>a(u,esc(host(u)))).join('');
+  return r||e?`<div class="acts">${r}${e}</div>`:''};
 function renderSessions(){
   const list=[...S.data.sessions].sort((a,b)=>b.date.localeCompare(a.date)),up=list.filter(x=>x.date>=today()).length;
   $('#stats').innerHTML=[[list.length,'Sessions','--blue'],[up,'Upcoming','--green']].map(([n,l,c])=>`<div class="stat" style="--c:var(${c})"><b>${n}</b><span>${l}</span></div>`).join('');
   $('#sessPanel').innerHTML=`<header><h2>Lecture sessions</h2>${isIns()?'<button class="btn sm" id="addSess">+ Add session</button>':''}</header>`+
-    (list.map(x=>`<article class="item"><h3>${esc(x.title)}</h3><div class="meta"><span class="chip">${esc(x.track)}</span><span>${fmt(x.date)}</span><span><bdi>${esc(x.author)}</bdi></span></div><div class="acts">${/^https?:\/\//i.test(x.link)?`<a class="btn sm" href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">Open lecture link</a>`:''}${isIns()?`<button class="btn sm danger" data-delsess="${x.id}">Delete</button>`:''}</div></article>`).join('')||'<div class="empty">No sessions yet.</div>');
+    (list.map(x=>`<article class="item"><h3>${esc(x.title)}</h3><div class="meta"><span class="chip">${esc(x.track)}</span><span>${fmt(x.date)}</span><span><bdi>${esc(x.author)}</bdi></span></div>${sessLinks(x)}${isIns()?`<div class="acts"><button class="btn sm danger" data-delsess="${x.id}">Delete</button></div>`:''}</article>`).join('')||'<div class="empty">No sessions yet.</div>');
   document.querySelectorAll('[data-delsess]').forEach(b=>b.onclick=()=>{if(confirm('Delete this session?'))act('deleteSession',{id:b.dataset.delsess},'Session deleted')});
-  const a=$('#addSess');if(a)a.onclick=()=>form('New session',[{n:'title',l:'Title'},{n:'track',l:'Track',t:'select',o:[...DEPTS,'General'].map(x=>[x,x])},{n:'date',l:'Date',t:'date',v:iso(1)},{n:'link',l:'Lecture link (https://...)',t:'url'}],v=>act('addSession',v,'Session added'));
+  const a=$('#addSess');if(a)a.onclick=()=>form('New session',[{n:'title',l:'Title'},{n:'track',l:'Track',t:'select',o:[...DEPTS,'General'].map(x=>[x,x])},{n:'date',l:'Date',t:'date',v:iso(1)},{n:'link',l:'Session recording link (https://...)',t:'url'},{n:'links',l:'Additional links (optional, one per line)',t:'textarea',req:false}],v=>act('addSession',v,'Session added'));
   autoDir();
 }
 
@@ -455,7 +462,7 @@ function runSearch(){
 }
 function fbRows(tid,sid){
   const l=S.data.feedback.filter(f=>f.taskId===tid&&f.studentId===sid).sort(newest);
-  return l.length?l.map(f=>`<div class="item fb"><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> \u00b7 ${fmt(f.date)} <button class="btn sm ghost" data-efb="${f.id}">Edit</button> <button class="btn sm danger" data-dfb="${f.id}">Delete</button></div></div>`).join(''):'<div class="meta">No feedback yet.</div>';
+  return l.length?l.map(f=>`<div class="item fb"><p>${rich(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> \u00b7 ${fmt(f.date)} <button class="btn sm ghost" data-efb="${f.id}">Edit</button> <button class="btn sm danger" data-dfb="${f.id}">Delete</button></div></div>`).join(''):'<div class="meta">No feedback yet.</div>';
 }
 function bindDetail(reopen){
   const D=$('#dlgFields');
