@@ -74,10 +74,10 @@ header.top h1{font-size:clamp(1.5rem,3.5vw,2.3rem)}
 .stat span{color:var(--mute);font-weight:700;font-size:.9rem}
 .grid{display:grid;grid-template-columns:1.6fr 1fr;gap:20px;align-items:start}
 .col{display:grid;gap:20px}
-.panel{background:var(--card);border:2px solid var(--ink);border-radius:18px;padding:18px;backdrop-filter:blur(2px)}
+.panel{background:var(--card);border:2px solid var(--ink);border-radius:18px;padding:18px}
 .panel>header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;border-bottom:2px dashed var(--line);padding-bottom:10px}
 .panel h2{font-size:1.4rem;color:var(--accent)}
-.item{border:1.5px solid var(--line);background:#fffdf6;border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.item{content-visibility:auto;contain-intrinsic-size:auto 150px;border:1.5px solid var(--line);background:#fffdf6;border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .item:last-child{margin-bottom:0}
 .item h3{font-size:1.1rem;margin-bottom:2px}
 .item p{margin:4px 0 8px;overflow-wrap:anywhere;white-space:pre-wrap}.got{color:var(--green);font-weight:800}.got small{font-size:.72rem;font-weight:700}.item h3,.item p{text-align:start}.scroll{max-height:520px;overflow-y:auto;padding-right:6px}#qres{max-height:300px;overflow-y:auto}.sbox{width:100%;border:2px solid var(--ink);border-radius:12px;padding:10px 14px;background:#fffdf6}.res{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
@@ -93,8 +93,8 @@ header.top h1{font-size:clamp(1.5rem,3.5vw,2.3rem)}
 .status button[data-s=In\ progress][aria-pressed=true]{background:var(--yellow);color:var(--ink)}
 .fb{border-left:6px solid var(--green)}
 .empty{color:var(--mute);text-align:center;padding:14px;border:2px dashed var(--line);border-radius:14px}
-.dots{position:fixed;left:30%;bottom:10px;width:260px;height:30px;background:radial-gradient(circle,var(--orange) 3px,transparent 4px) 0 0/26px 26px;opacity:.7;pointer-events:none}
-.arcs{position:fixed;right:0;bottom:0;width:150px;height:150px;pointer-events:none}
+.dots{position:fixed;transform:translateZ(0);left:30%;bottom:10px;width:260px;height:30px;background:radial-gradient(circle,var(--orange) 3px,transparent 4px) 0 0/26px 26px;opacity:.7;pointer-events:none}
+.arcs{position:fixed;transform:translateZ(0);right:0;bottom:0;width:150px;height:150px;pointer-events:none}
 dialog{border:2px solid var(--ink);border-radius:20px;padding:24px;width:min(480px,92vw);background:#fbf6e8;box-shadow:8px 8px 0 var(--ink)}
 dialog::backdrop{background:rgba(43,36,56,.5)}
 dialog h2{margin-bottom:14px}dialog.wide{width:min(900px,96vw);min-height:min(520px,80vh);padding:34px;max-height:92vh;overflow:auto}dialog.wide h2{font-size:1.6rem}dialog.wide .item{padding:16px 18px}dialog.wide .item p{font-size:1.15rem}
@@ -175,7 +175,7 @@ const parseLinks=v=>{const l=linkList(v);if(l.length>10)throw new Error('Maximum
 const host=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return 'Link'}};
 const linksHtml=s=>{const l=linkList(s).filter(okLink);return l.length?`<div class="acts">${l.map(u=>`<a class="btn ghost sm" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(host(u))} &#8599;</a>`).join('')}</div>`:''};
 const fmt=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}catch(e){return d}};
-let S={token:null,user:null,dept:null,data:null,sig:'',days:90,fbN:10};
+let S={token:null,user:null,dept:null,data:null,sig:'',days:90,fbN:10,taskN:10};
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;t.setAttribute('role','status');document.body.append(t);setTimeout(()=>t.remove(),2600)}
 
 /* ===== API layer: Google Apps Script, or local demo with the same actions ===== */
@@ -203,7 +203,7 @@ const Supa={
     const d=new Date();d.setDate(d.getDate()-S.days);const cut=d.toISOString().slice(0,10);
     if(want('tasks'))jobs.push(run(SB.from('tasks').select('*').gte('deadline',cut)).then(v=>{out.tasks=v}));
     if(want('announcements'))jobs.push(run(SB.from('announcements').select('*').gte('date',cut)).then(v=>{out.announcements=v}));
-    if(want('feedback'))jobs.push(run(SB.from('feedback').select('*').gte('date',cut)).then(v=>{out.feedback=v.map(f=>({id:f.id,department:f.department,taskId:f.task_id,studentId:f.student_id,text:f.text,date:f.date,author:f.author}))}));
+    if(want('feedback'))jobs.push(run(SB.from('feedback').select('*').gte('date',cut)).then(v=>{out.feedback=v.map(f=>({id:f.id,department:f.department,taskId:f.task_id,studentId:f.student_id,text:f.text,date:f.date,author:f.author,createdAt:f.created_at||''}))}));
     if(want('sessions'))jobs.push(run(SB.from('sessions').select('*')).then(v=>{out.sessions=v}));
     if(want('progress'))jobs.push(run(SB.from('progress').select('task_id,student_id,status,tasks!inner(deadline)').gte('tasks.deadline',cut)).then(v=>{out.progress=v.map(x=>({taskId:x.task_id,studentId:x.student_id,status:x.status}))}));
     if(!only)jobs.push(ins?run(SB.from('profiles').select('id,name').eq('role','student')).then(v=>{out.students=v}):Promise.resolve(out.students=[]));
@@ -219,6 +219,7 @@ const Supa={
     try{await run(SB.from('progress').upsert({task_id:p.taskId,student_id:p.studentId,status:'Done'},{onConflict:'task_id,student_id'}))}
     catch(e){throw new Error('Feedback saved, but progress was not set to Done. Run supabase/migration_feedback.sql.')}},
   editFeedback:p=>run(SB.from('feedback').update({text:p.text}).eq('id',p.id)),
+  deleteFeedback:p=>run(SB.from('feedback').delete().eq('id',p.id)),
   addSession:p=>{if(!okLink(p.link))throw new Error('Link must start with http:// or https://');return run(SB.from('sessions').insert({track:p.track,title:p.title,link:p.link,date:p.date}))},
   deleteSession:p=>run(SB.from('sessions').delete().eq('id',p.id))
 };
@@ -295,7 +296,8 @@ const Demo={
       case'addAnnouncement':need();allow(b.department);db.announcements.push({id:id(),department:b.department,title:b.title,body:b.body,date:today(),author:u.name});break;
       case'deleteAnnouncement':need();{const a=db.announcements.find(x=>x.id===b.id);if(a)allow(a.department);db.announcements=db.announcements.filter(x=>x.id!==b.id)}break;
       case'addFeedback':need();{const t=db.tasks.find(x=>x.id===b.taskId);if(!t)throw new Error('Task not found.');allow(t.department);
-        db.feedback.push({id:id(),department:t.department,taskId:t.id,studentId:b.studentId,text:b.text,date:today(),author:u.name});{const pr=db.progress.find(x=>x.taskId===t.id&&x.studentId===b.studentId);pr?pr.status='Done':db.progress.push({taskId:t.id,studentId:b.studentId,status:'Done'})}}break;
+        db.feedback.push({id:id(),department:t.department,taskId:t.id,studentId:b.studentId,text:b.text,date:today(),createdAt:new Date().toISOString(),author:u.name});{const pr=db.progress.find(x=>x.taskId===t.id&&x.studentId===b.studentId);pr?pr.status='Done':db.progress.push({taskId:t.id,studentId:b.studentId,status:'Done'})}}break;
+      case'deleteFeedback':need();{const f=db.feedback.find(x=>x.id===b.id);if(f){allow(f.department);db.feedback=db.feedback.filter(x=>x.id!==b.id)}}break;
       case'editFeedback':need();{const f=db.feedback.find(x=>x.id===b.id);if(!f)throw new Error('Feedback not found.');allow(f.department);f.text=b.text}break;
       case'addSession':need();if(!/^https?:\/\//i.test(String(b.link)))throw new Error('Link must start with http:// or https://');
         if(![...D,'General'].includes(b.track))throw new Error('Bad track.');
@@ -319,7 +321,7 @@ $('#loginForm').onsubmit=async e=>{
   $('#loginBtn').disabled=false;
 };
 $('#logout').onclick=logout;
-function logout(){if(SB){SB.removeAllChannels();SB.auth.signOut()}S={token:null,user:null,dept:null,data:null,sig:'',days:90,fbN:10};try{sessionStorage.removeItem('gdg_session')}catch(e){}$('#app').hidden=true;$('#login').hidden=false;$('#p').value=''}
+function logout(){if(SB){SB.removeAllChannels();SB.auth.signOut()}S={token:null,user:null,dept:null,data:null,sig:'',days:90,fbN:10,taskN:10};try{sessionStorage.removeItem('gdg_session')}catch(e){}$('#app').hidden=true;$('#login').hidden=false;$('#p').value=''}
 async function enter(){
   const D=deptsOf(S.user);S.dept=D[0];
   $('#login').hidden=true;$('#app').hidden=false;
@@ -346,6 +348,9 @@ async function act(action,payload,msg){
 
 /* ===== render ===== */
 const me=()=>S.user,isIns=()=>me().role==='instructor';
+/* newest first: by date, then by exact time when the database has created_at */
+const ck=x=>String(x.createdAt||x.created_at||'');
+const newest=(a,b)=>String(b.date).localeCompare(String(a.date))||ck(b).localeCompare(ck(a));
 const stat=(tid,sid)=>(S.data.progress.find(p=>p.taskId===tid&&p.studentId===sid)||{}).status||'To do';
 const chipFor=s=>({'To do':'todo','In progress':'doing','Done':'done'}[s]);
 const name=id=>(S.data.students.find(s=>s.id===id)||{}).name||'Student';
@@ -359,11 +364,11 @@ function render(){
   $('#pageTitle').textContent=sess?'Sessions':`${d} Department`;
   $('#grid').hidden=sess;$('#searchPanel').hidden=sess||!isIns();$('#sessPanel').hidden=!sess;
   $('#depts').innerHTML=[...D,'Sessions'].map(x=>`<button data-d="${x}" aria-pressed="${x===d}">${x}</button>`).join('');
-  $('#depts').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.dept=b.dataset.d;S.fbN=10;render()});
+  $('#depts').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.dept=b.dataset.d;S.fbN=10;S.taskN=10;render()});
   if(sess){renderSessions();return}
-  const tasks=data.tasks.filter(t=>t.department===d).sort((a,b)=>b.deadline.localeCompare(a.deadline)||String(b.created_at||'').localeCompare(String(a.created_at||'')));
-  const ann=data.announcements.filter(a=>a.department===d).sort((a,b)=>b.date.localeCompare(a.date));
-  const fb=data.feedback.filter(f=>f.department===d).sort((a,b)=>b.date.localeCompare(a.date));
+  const tasks=data.tasks.filter(t=>t.department===d).sort((a,b)=>b.deadline.localeCompare(a.deadline)||ck(b).localeCompare(ck(a)));
+  const ann=data.announcements.filter(a=>a.department===d).sort(newest);
+  const fb=data.feedback.filter(f=>f.department===d).sort(newest);
   const studs=[...data.students].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'}));
   /* stats */
   let s1;
@@ -373,36 +378,39 @@ function render(){
   $('#stats').innerHTML=s1.map(([n,l,c])=>`<div class="stat" style="--c:var(${c})"><b>${esc(n)}</b><span>${l}</span></div>`).join('');
   /* tasks */
   $('#tasksPanel').innerHTML=`<header><h2>Tasks</h2>${isIns()?'<button class="btn sm" id="addTask">+ New task</button>':''}</header>`+
-    (tasks.map(t=>{
+    (tasks.slice(0,S.taskN||10).map(t=>{
       const late=t.deadline<today();
       if(isIns()){
         const done=studs.filter(s=>stat(t.id,s.id)==='Done').length,pct=studs.length?Math.round(done/studs.length*100):0;
         return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late?'late':''}">Due ${fmt(t.deadline)}</span></div><p>${esc(t.description)}</p>${linksHtml(t.links)}
         <div class="meta">${done} of ${studs.length} students done</div><div class="bar"><i style="width:${pct}%"></i></div>
-        <details><summary class="meta" style="cursor:pointer">Student progress</summary>${studs.map(s=>`<div class="meta">${studLabel(t.id,s)}: <span class="chip ${chipFor(stat(t.id,s.id))}">${stat(t.id,s.id)}</span></div>`).join('')||'<div class="meta">No students yet.</div>'}</details>
+        <details data-pl="${t.id}"><summary class="meta" style="cursor:pointer">Student progress</summary></details>
         <div class="acts"><button class="btn sm" data-fb="${t.id}">Give feedback</button><button class="btn sm danger" data-deltask="${t.id}">Delete</button></div></article>`;
       }
       const st=stat(t.id,me().id);
       return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip ${late&&st!=='Done'?'late':''}">Due ${fmt(t.deadline)}</span><span class="chip ${chipFor(st)}">${st}</span></div><p>${esc(t.description)}</p>${linksHtml(t.links)}
       <div class="status" role="group" aria-label="Progress for ${esc(t.title)}">${STATUSES.map(x=>`<button data-prog="${t.id}" data-s="${x}" aria-pressed="${x===st}">${x}</button>`).join('')}</div>
       <div class="acts"><button class="btn ghost sm" data-vf="${t.id}">Feedback${nfb(t.id)}</button></div></article>`;
-    }).join('')||`<div class="empty">${isIns()?'No tasks yet. Add the first one.':'No tasks assigned yet.'}</div>`);
+    }).join('')||`<div class="empty">${isIns()?'No tasks yet. Add the first one.':'No tasks assigned yet.'}</div>`)+(tasks.length>(S.taskN||10)?'<button class="btn ghost sm" id="taskMore" style="margin-top:12px">Load more tasks</button>':'');
   /* announcements */
   $('#annPanel').innerHTML=`<header><h2>Announcements</h2>${isIns()?'<button class="btn sm" id="addAnn">+ Post</button>':''}</header>`+
     (ann.map(a=>`<article class="item"><h3>${esc(a.title)}</h3><p>${esc(a.body)}</p><div class="meta"><bdi>${esc(a.author)}</bdi> · ${fmt(a.date)}</div>${isIns()?`<div class="acts"><button class="btn sm danger" data-delann="${a.id}">Delete</button></div>`:''}</article>`).join('')||'<div class="empty">No announcements yet.</div>');
   /* feedback */
   $('#fbPanel').innerHTML=`<header><h2>Feedback</h2></header><div class="scroll">`+
-    (fb.slice(0,S.fbN||10).map(f=>{const t=data.tasks.find(x=>x.id===f.taskId);return`<article class="item fb"><div class="meta">${isIns()?`<b><bdi>${esc(name(f.studentId))}</bdi></b> on `:''}<b><bdi>${esc(t?t.title:'Task')}</bdi></b></div><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div>${isIns()?`<div class="acts"><button class="btn sm ghost" data-editfb="${f.id}">Edit</button></div>`:''}</article>`}).join('')||`<div class="empty">${isIns()?'Feedback you give will show here.':'No feedback yet. Keep going!'}</div>`)+(fb.length>(S.fbN||10)?'<button class="btn ghost sm" id="fbMore" style="margin-top:12px">Load more feedback</button>':(LIVE&&S.days<3650&&fb.length?'<button class="btn ghost sm" id="fbMore" style="margin-top:12px">Load older feedback</button>':''))+'</div>';
+    (fb.slice(0,S.fbN||10).map(f=>{const t=data.tasks.find(x=>x.id===f.taskId);return`<article class="item fb"><div class="meta">${isIns()?`<b><bdi>${esc(name(f.studentId))}</bdi></b> on `:''}<b><bdi>${esc(t?t.title:'Task')}</bdi></b></div><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div>${isIns()?`<div class="acts"><button class="btn sm ghost" data-editfb="${f.id}">Edit</button><button class="btn sm danger" data-dfb="${f.id}">Delete</button></div>`:''}</article>`}).join('')||`<div class="empty">${isIns()?'Feedback you give will show here.':'No feedback yet. Keep going!'}</div>`)+(fb.length>(S.fbN||10)?'<button class="btn ghost sm" id="fbMore" style="margin-top:12px">Load more feedback</button>':(LIVE&&S.days<3650&&fb.length?'<button class="btn ghost sm" id="fbMore" style="margin-top:12px">Load older feedback</button>':''))+'</div>';
   const fm=$('#fbMore');if(fm)fm.onclick=()=>{if(fb.length>(S.fbN||10)){S.fbN=(S.fbN||10)+10;render()}else{S.days=3650;toast('Loading older feedback...');refresh(true)}};
+  const tm=$('#taskMore');if(tm)tm.onclick=()=>{S.taskN=(S.taskN||10)+10;render()};
   bind(tasks,studs);initSearch();autoDir();
 }
 function bind(tasks,studs){
   if(LIVE&&S.days<3650){const b=document.createElement('button');b.className='btn ghost sm';b.style.marginTop='12px';b.textContent=`Showing the last ${S.days} days. Show older tasks`;b.onclick=()=>{S.days=3650;toast('Loading older tasks...');refresh(true)};$('#tasksPanel').append(b)}
   const q=(s,f)=>document.querySelectorAll(s).forEach(f);
   q('[data-prog]',b=>b.onclick=()=>act('setProgress',{taskId:b.dataset.prog,status:b.dataset.s},'Progress saved'));
-  q('[data-vf]',b=>b.onclick=()=>{const t=S.data.tasks.find(x=>x.id===b.dataset.vf),l=S.data.feedback.filter(f=>f.taskId===b.dataset.vf&&f.studentId===me().id).sort((a,c)=>c.date.localeCompare(a.date));
+  q('[data-vf]',b=>b.onclick=()=>{const t=S.data.tasks.find(x=>x.id===b.dataset.vf),l=S.data.feedback.filter(f=>f.taskId===b.dataset.vf&&f.studentId===me().id).sort(newest);
     info(`Feedback: ${t?t.title:'Task'}`,l.length?l.map(f=>`<div class="item fb"><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div></div>`).join(''):'<div class="empty">No feedback on this task yet.</div>')});
   q('[data-editfb]',b=>b.onclick=()=>{const f=S.data.feedback.find(x=>x.id===b.dataset.editfb);if(f)form('Edit feedback',[{n:'text',l:'Feedback',t:'textarea',v:f.text}],v=>act('editFeedback',{id:f.id,text:v.text},'Feedback updated'))});
+  q('[data-pl]',d=>d.addEventListener('toggle',()=>{if(d.open&&!d.dataset.f){d.dataset.f=1;d.insertAdjacentHTML('beforeend',studs.map(s=>`<div class="meta">${studLabel(d.dataset.pl,s)}: <span class="chip ${chipFor(stat(d.dataset.pl,s.id))}">${stat(d.dataset.pl,s.id)}</span></div>`).join('')||'<div class="meta">No students yet.</div>')}}));
+  q('[data-dfb]',b=>b.onclick=()=>{if(confirm('Delete this feedback?'))act('deleteFeedback',{id:b.dataset.dfb},'Feedback deleted')});
   q('[data-deltask]',b=>b.onclick=()=>{if(confirm('Delete this task, its progress and feedback?'))act('deleteTask',{id:b.dataset.deltask},'Task deleted')});
   q('[data-delann]',b=>b.onclick=()=>{if(confirm('Delete this announcement?'))act('deleteAnnouncement',{id:b.dataset.delann},'Announcement deleted')});
   q('[data-fb]',b=>b.onclick=()=>{
@@ -446,12 +454,13 @@ function runSearch(){
   R.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>taskDetail(b.dataset.st));
 }
 function fbRows(tid,sid){
-  const l=S.data.feedback.filter(f=>f.taskId===tid&&f.studentId===sid).sort((a,b)=>b.date.localeCompare(a.date));
-  return l.length?l.map(f=>`<div class="item fb"><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> \u00b7 ${fmt(f.date)} <button class="btn sm ghost" data-efb="${f.id}">Edit</button></div></div>`).join(''):'<div class="meta">No feedback yet.</div>';
+  const l=S.data.feedback.filter(f=>f.taskId===tid&&f.studentId===sid).sort(newest);
+  return l.length?l.map(f=>`<div class="item fb"><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> \u00b7 ${fmt(f.date)} <button class="btn sm ghost" data-efb="${f.id}">Edit</button> <button class="btn sm danger" data-dfb="${f.id}">Delete</button></div></div>`).join(''):'<div class="meta">No feedback yet.</div>';
 }
 function bindDetail(reopen){
   const D=$('#dlgFields');
   D.querySelectorAll('[data-efb]').forEach(b=>b.onclick=()=>{const f=S.data.feedback.find(x=>x.id===b.dataset.efb);if(f)form('Edit feedback',[{n:'text',l:'Feedback',t:'textarea',v:f.text}],v=>act('editFeedback',{id:f.id,text:v.text},'Feedback updated').then(reopen),reopen)});
+  D.querySelectorAll('[data-dfb]').forEach(b=>b.onclick=()=>{if(confirm('Delete this feedback?'))act('deleteFeedback',{id:b.dataset.dfb},'Feedback deleted').then(reopen)});
   D.querySelectorAll('[data-gfb]').forEach(b=>b.onclick=()=>{const[tid,sid]=b.dataset.gfb.split('|');form('Give feedback',[{n:'text',l:'Feedback',t:'textarea'}],v=>act('addFeedback',{taskId:tid,studentId:sid,text:v.text},'Feedback sent').then(reopen),reopen)});
 }
 function studentDetail(sid){
