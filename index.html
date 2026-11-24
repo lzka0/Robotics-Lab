@@ -13,8 +13,7 @@ body[data-dept=Hardware]{--accent:var(--orange)}body[data-dept=Mechanical]{--acc
 *{box-sizing:border-box}
 html,body{margin:0}
 body{font-family:Nunito,Cairo,system-ui,sans-serif;color:var(--ink);min-height:100vh;line-height:1.5;
-background:var(--paper)}
-body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;transform:translateZ(0);will-change:transform;background:radial-gradient(ellipse at center,transparent 55%,rgba(150,120,70,.28)),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .25 0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"),var(--paper);}
+background:radial-gradient(ellipse at center,transparent 55%,rgba(150,120,70,.28)),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .25 0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"),var(--paper);background-attachment:fixed}
 h1,h2,h3{font-family:'Lilita One',Nunito,Cairo,sans-serif;font-weight:400;margin:0;letter-spacing:.01em}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--blue);outline-offset:2px}
@@ -75,13 +74,13 @@ header.top h1{font-size:clamp(1.5rem,3.5vw,2.3rem)}
 .stat span{color:var(--mute);font-weight:700;font-size:.9rem}
 .grid{display:grid;grid-template-columns:1.6fr 1fr;gap:20px;align-items:start}
 .col{display:grid;gap:20px}
-.panel{background:var(--card);border:2px solid var(--ink);border-radius:18px;padding:18px}
+.panel{background:var(--card);border:2px solid var(--ink);border-radius:18px;padding:18px;backdrop-filter:blur(2px)}
 .panel>header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;border-bottom:2px dashed var(--line);padding-bottom:10px}
 .panel h2{font-size:1.4rem;color:var(--accent)}
-.item{content-visibility:auto;contain-intrinsic-size:auto 110px;border:1.5px solid var(--line);background:#fffdf6;border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.item{border:1.5px solid var(--line);background:#fffdf6;border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .item:last-child{margin-bottom:0}
 .item h3{font-size:1.1rem;margin-bottom:2px}
-.item p{margin:4px 0 8px;overflow-wrap:anywhere}.got{color:var(--green);font-weight:800}.got small{font-size:.72rem;font-weight:700}.item h3,.item p{text-align:start}.scroll{max-height:520px;overflow-y:auto;padding-right:6px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}#qres{max-height:300px;overflow-y:auto}.sbox{width:100%;border:2px solid var(--ink);border-radius:12px;padding:10px 14px;background:#fffdf6}.res{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.item p{margin:4px 0 8px;overflow-wrap:anywhere;white-space:pre-wrap}.got{color:var(--green);font-weight:800}.got small{font-size:.72rem;font-weight:700}.item h3,.item p{text-align:start}.scroll{max-height:520px;overflow-y:auto;padding-right:6px}#qres{max-height:300px;overflow-y:auto}.sbox{width:100%;border:2px solid var(--ink);border-radius:12px;padding:10px 14px;background:#fffdf6}.res{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
 .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.85rem;color:var(--mute);font-weight:700}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .bar{height:10px;border:1.5px solid var(--ink);border-radius:9px;overflow:hidden;background:#fff;margin:6px 0 2px}
@@ -94,11 +93,11 @@ header.top h1{font-size:clamp(1.5rem,3.5vw,2.3rem)}
 .status button[data-s=In\ progress][aria-pressed=true]{background:var(--yellow);color:var(--ink)}
 .fb{border-left:6px solid var(--green)}
 .empty{color:var(--mute);text-align:center;padding:14px;border:2px dashed var(--line);border-radius:14px}
-.dots{position:fixed;will-change:transform;left:30%;bottom:10px;width:260px;height:30px;background:radial-gradient(circle,var(--orange) 3px,transparent 4px) 0 0/26px 26px;opacity:.7;pointer-events:none}
-.arcs{position:fixed;will-change:transform;right:0;bottom:0;width:150px;height:150px;pointer-events:none}
+.dots{position:fixed;left:30%;bottom:10px;width:260px;height:30px;background:radial-gradient(circle,var(--orange) 3px,transparent 4px) 0 0/26px 26px;opacity:.7;pointer-events:none}
+.arcs{position:fixed;right:0;bottom:0;width:150px;height:150px;pointer-events:none}
 dialog{border:2px solid var(--ink);border-radius:20px;padding:24px;width:min(480px,92vw);background:#fbf6e8;box-shadow:8px 8px 0 var(--ink)}
 dialog::backdrop{background:rgba(43,36,56,.5)}
-dialog h2{margin-bottom:14px}dialog.wide{width:min(640px,94vw);padding:30px;max-height:88vh;overflow:auto}dialog.wide h2{font-size:1.6rem}dialog.wide .item{padding:16px 18px}dialog.wide .item p{font-size:1.08rem}
+dialog h2{margin-bottom:14px}dialog.wide{width:min(900px,96vw);min-height:min(520px,80vh);padding:34px;max-height:92vh;overflow:auto}dialog.wide h2{font-size:1.6rem}dialog.wide .item{padding:16px 18px}dialog.wide .item p{font-size:1.15rem}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:12px;font-weight:700;z-index:99;max-width:90vw}
 @media(max-width:860px){.grid{grid-template-columns:1fr}.dots,.deco.half,.arcs{display:none}}
 @media(max-width:520px){.deco.el{width:110px;height:100px}.login-card{padding:20px}}
@@ -176,7 +175,7 @@ const parseLinks=v=>{const l=linkList(v);if(l.length>10)throw new Error('Maximum
 const host=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return 'Link'}};
 const linksHtml=s=>{const l=linkList(s).filter(okLink);return l.length?`<div class="acts">${l.map(u=>`<a class="btn ghost sm" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(host(u))} &#8599;</a>`).join('')}</div>`:''};
 const fmt=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}catch(e){return d}};
-let S={token:null,user:null,dept:null,data:null,sig:'',days:90};
+let S={token:null,user:null,dept:null,data:null,sig:'',days:90,fbN:10};
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;t.setAttribute('role','status');document.body.append(t);setTimeout(()=>t.remove(),2600)}
 
 /* ===== API layer: Google Apps Script, or local demo with the same actions ===== */
@@ -320,7 +319,7 @@ $('#loginForm').onsubmit=async e=>{
   $('#loginBtn').disabled=false;
 };
 $('#logout').onclick=logout;
-function logout(){if(SB){SB.removeAllChannels();SB.auth.signOut()}S={token:null,user:null,dept:null,data:null,sig:'',days:90};try{sessionStorage.removeItem('gdg_session')}catch(e){}$('#app').hidden=true;$('#login').hidden=false;$('#p').value=''}
+function logout(){if(SB){SB.removeAllChannels();SB.auth.signOut()}S={token:null,user:null,dept:null,data:null,sig:'',days:90,fbN:10};try{sessionStorage.removeItem('gdg_session')}catch(e){}$('#app').hidden=true;$('#login').hidden=false;$('#p').value=''}
 async function enter(){
   const D=deptsOf(S.user);S.dept=D[0];
   $('#login').hidden=true;$('#app').hidden=false;
@@ -360,12 +359,12 @@ function render(){
   $('#pageTitle').textContent=sess?'Sessions':`${d} Department`;
   $('#grid').hidden=sess;$('#searchPanel').hidden=sess||!isIns();$('#sessPanel').hidden=!sess;
   $('#depts').innerHTML=[...D,'Sessions'].map(x=>`<button data-d="${x}" aria-pressed="${x===d}">${x}</button>`).join('');
-  $('#depts').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.dept=b.dataset.d;render()});
+  $('#depts').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.dept=b.dataset.d;S.fbN=10;render()});
   if(sess){renderSessions();return}
-  const tasks=data.tasks.filter(t=>t.department===d).sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  const tasks=data.tasks.filter(t=>t.department===d).sort((a,b)=>b.deadline.localeCompare(a.deadline)||String(b.created_at||'').localeCompare(String(a.created_at||'')));
   const ann=data.announcements.filter(a=>a.department===d).sort((a,b)=>b.date.localeCompare(a.date));
   const fb=data.feedback.filter(f=>f.department===d).sort((a,b)=>b.date.localeCompare(a.date));
-  const studs=data.students;
+  const studs=[...data.students].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'}));
   /* stats */
   let s1;
   if(isIns()){const tot=tasks.length*studs.length,done=tasks.reduce((n,t)=>n+studs.filter(s=>stat(t.id,s.id)==='Done').length,0);s1=[[tasks.length,'Tasks','--blue'],[studs.length,'Students','--green'],[tot?Math.round(done/tot*100)+'%':'0%','Completed overall','--orange']]}
@@ -393,7 +392,8 @@ function render(){
     (ann.map(a=>`<article class="item"><h3>${esc(a.title)}</h3><p>${esc(a.body)}</p><div class="meta"><bdi>${esc(a.author)}</bdi> · ${fmt(a.date)}</div>${isIns()?`<div class="acts"><button class="btn sm danger" data-delann="${a.id}">Delete</button></div>`:''}</article>`).join('')||'<div class="empty">No announcements yet.</div>');
   /* feedback */
   $('#fbPanel').innerHTML=`<header><h2>Feedback</h2></header><div class="scroll">`+
-    (fb.map(f=>{const t=data.tasks.find(x=>x.id===f.taskId);return`<article class="item fb"><div class="meta">${isIns()?`<b><bdi>${esc(name(f.studentId))}</bdi></b> on `:''}<b><bdi>${esc(t?t.title:'Task')}</bdi></b></div><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div>${isIns()?`<div class="acts"><button class="btn sm ghost" data-editfb="${f.id}">Edit</button></div>`:''}</article>`}).join('')||`<div class="empty">${isIns()?'Feedback you give will show here.':'No feedback yet. Keep going!'}</div>`)+'</div>';
+    (fb.slice(0,S.fbN||10).map(f=>{const t=data.tasks.find(x=>x.id===f.taskId);return`<article class="item fb"><div class="meta">${isIns()?`<b><bdi>${esc(name(f.studentId))}</bdi></b> on `:''}<b><bdi>${esc(t?t.title:'Task')}</bdi></b></div><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div>${isIns()?`<div class="acts"><button class="btn sm ghost" data-editfb="${f.id}">Edit</button></div>`:''}</article>`}).join('')||`<div class="empty">${isIns()?'Feedback you give will show here.':'No feedback yet. Keep going!'}</div>`)+(fb.length>(S.fbN||10)?'<button class="btn ghost sm" id="fbMore" style="margin-top:12px">Load more feedback</button>':(LIVE&&S.days<3650&&fb.length?'<button class="btn ghost sm" id="fbMore" style="margin-top:12px">Load older feedback</button>':''))+'</div>';
+  const fm=$('#fbMore');if(fm)fm.onclick=()=>{if(fb.length>(S.fbN||10)){S.fbN=(S.fbN||10)+10;render()}else{S.days=3650;toast('Loading older feedback...');refresh(true)}};
   bind(tasks,studs);initSearch();autoDir();
 }
 function bind(tasks,studs){
@@ -438,7 +438,7 @@ function initSearch(){
 function runSearch(){
   const q=norm($('#sq').value.trim()),R=$('#qres');
   if(!q){R.innerHTML='<div class="meta" style="margin-top:8px">Type to find a student or a task, then open it to see details and edit feedback.</div>';return}
-  const sts=S.data.students.filter(x=>norm(x.name).includes(q)).slice(0,15);
+  const sts=S.data.students.filter(x=>norm(x.name).includes(q)).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'})).slice(0,15);
   const tks=S.data.tasks.filter(t=>t.department===S.dept&&(norm(t.title).includes(q)||norm(t.description).includes(q))).slice(0,15);
   R.innerHTML=(sts.length?`<div class="meta" style="margin-top:10px"><b>Students</b></div><div class="res">${sts.map(x=>`<button class="btn ghost sm" data-ss="${x.id}"><bdi>${esc(x.name)}</bdi></button>`).join('')}</div>`:'')+
     (tks.length?`<div class="meta" style="margin-top:6px"><b>Tasks</b></div><div class="res">${tks.map(t=>`<button class="btn ghost sm" data-st="${t.id}"><bdi>${esc(t.title)}</bdi></button>`).join('')}</div>`:'')||'<div class="meta" style="margin-top:8px">No matches. Older tasks need "Show older tasks" first.</div>';
@@ -456,7 +456,7 @@ function bindDetail(reopen){
 }
 function studentDetail(sid){
   const s=S.data.students.find(x=>x.id===sid);if(!s)return;
-  const d=S.dept,tasks=S.data.tasks.filter(t=>t.department===d).sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  const d=S.dept,tasks=S.data.tasks.filter(t=>t.department===d).sort((a,b)=>b.deadline.localeCompare(a.deadline));
   const done=tasks.filter(t=>stat(t.id,sid)==='Done').length,reopen=()=>studentDetail(sid);
   info(`${s.name} \u00b7 ${d}`,`<div class="meta" style="margin-bottom:12px">${done} of ${tasks.length} tasks done</div>`+
     (tasks.map(t=>{const st=stat(t.id,sid);return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip">Due ${fmt(t.deadline)}</span><span class="chip ${chipFor(st)}">${st}</span></div>${fbRows(t.id,sid)}<div class="acts"><button class="btn sm" data-gfb="${t.id}|${sid}">Give feedback</button></div></article>`}).join('')||'<div class="empty">No tasks in this department yet.</div>'),()=>bindDetail(reopen));
