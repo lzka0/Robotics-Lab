@@ -80,7 +80,7 @@ header.top h1{font-size:clamp(1.5rem,3.5vw,2.3rem)}
 .item{border:1.5px solid var(--line);background:#fffdf6;border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .item:last-child{margin-bottom:0}
 .item h3{font-size:1.1rem;margin-bottom:2px}
-.item p{margin:4px 0 8px;overflow-wrap:anywhere}.got{color:var(--green);font-weight:800}.got small{font-size:.72rem;font-weight:700}.item h3,.item p{text-align:start}
+.item p{margin:4px 0 8px;overflow-wrap:anywhere}.got{color:var(--green);font-weight:800}.got small{font-size:.72rem;font-weight:700}.item h3,.item p{text-align:start}.scroll{max-height:520px;overflow-y:auto;padding-right:6px}#qres{max-height:300px;overflow-y:auto}.sbox{width:100%;border:2px solid var(--ink);border-radius:12px;padding:10px 14px;background:#fffdf6}.res{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
 .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.85rem;color:var(--mute);font-weight:700}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .bar{height:10px;border:1.5px solid var(--ink);border-radius:9px;overflow:hidden;background:#fff;margin:6px 0 2px}
@@ -136,6 +136,7 @@ dialog h2{margin-bottom:14px}dialog.wide{width:min(640px,94vw);padding:30px;max-
   </header>
   <nav class="depts" id="depts" aria-label="Department"></nav>
   <section class="stats" id="stats" aria-live="polite"></section>
+  <section class="panel" id="searchPanel" hidden style="margin-bottom:20px"></section>
   <div class="grid" id="grid">
     <section class="panel" id="tasksPanel"></section>
     <div class="col">
@@ -356,7 +357,7 @@ function render(){
   document.body.dataset.dept=d;
   const sess=d==='Sessions';
   $('#pageTitle').textContent=sess?'Sessions':`${d} Department`;
-  $('#grid').hidden=sess;$('#sessPanel').hidden=!sess;
+  $('#grid').hidden=sess;$('#searchPanel').hidden=sess||!isIns();$('#sessPanel').hidden=!sess;
   $('#depts').innerHTML=[...D,'Sessions'].map(x=>`<button data-d="${x}" aria-pressed="${x===d}">${x}</button>`).join('');
   $('#depts').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.dept=b.dataset.d;render()});
   if(sess){renderSessions();return}
@@ -390,9 +391,9 @@ function render(){
   $('#annPanel').innerHTML=`<header><h2>Announcements</h2>${isIns()?'<button class="btn sm" id="addAnn">+ Post</button>':''}</header>`+
     (ann.map(a=>`<article class="item"><h3>${esc(a.title)}</h3><p>${esc(a.body)}</p><div class="meta"><bdi>${esc(a.author)}</bdi> · ${fmt(a.date)}</div>${isIns()?`<div class="acts"><button class="btn sm danger" data-delann="${a.id}">Delete</button></div>`:''}</article>`).join('')||'<div class="empty">No announcements yet.</div>');
   /* feedback */
-  $('#fbPanel').innerHTML=`<header><h2>Feedback</h2></header>`+
-    (fb.map(f=>{const t=data.tasks.find(x=>x.id===f.taskId);return`<article class="item fb"><div class="meta">${isIns()?`<b><bdi>${esc(name(f.studentId))}</bdi></b> on `:''}<b><bdi>${esc(t?t.title:'Task')}</bdi></b></div><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div>${isIns()?`<div class="acts"><button class="btn sm ghost" data-editfb="${f.id}">Edit</button></div>`:''}</article>`}).join('')||`<div class="empty">${isIns()?'Feedback you give will show here.':'No feedback yet. Keep going!'}</div>`);
-  bind(tasks,studs);autoDir();
+  $('#fbPanel').innerHTML=`<header><h2>Feedback</h2></header><div class="scroll">`+
+    (fb.map(f=>{const t=data.tasks.find(x=>x.id===f.taskId);return`<article class="item fb"><div class="meta">${isIns()?`<b><bdi>${esc(name(f.studentId))}</bdi></b> on `:''}<b><bdi>${esc(t?t.title:'Task')}</bdi></b></div><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> · ${fmt(f.date)}</div>${isIns()?`<div class="acts"><button class="btn sm ghost" data-editfb="${f.id}">Edit</button></div>`:''}</article>`}).join('')||`<div class="empty">${isIns()?'Feedback you give will show here.':'No feedback yet. Keep going!'}</div>`)+'</div>';
+  bind(tasks,studs);initSearch();autoDir();
 }
 function bind(tasks,studs){
   if(LIVE&&S.days<3650){const b=document.createElement('button');b.className='btn ghost sm';b.style.marginTop='12px';b.textContent=`Showing the last ${S.days} days. Show older tasks`;b.onclick=()=>{S.days=3650;toast('Loading older tasks...');refresh(true)};$('#tasksPanel').append(b)}
@@ -422,26 +423,70 @@ function renderSessions(){
   autoDir();
 }
 
+/* ===== instructor search: students and tasks of the current department ===== */
+const norm=x=>String(x||'').toLowerCase().normalize('NFKD').replace(/[\u064B-\u065F\u0670]/g,'').replace(/\u0649/g,'\u064A').replace(/\u0629/g,'\u0647');
+function initSearch(){
+  const P=$('#searchPanel');if(!isIns()||S.dept==='Sessions')return;
+  if(P.dataset.d!==S.dept){
+    P.dataset.d=S.dept;
+    P.innerHTML=`<header><h2>Search students &amp; tasks</h2></header><input class="sbox" id="sq" type="search" dir="auto" autocomplete="off" placeholder="Type a student name or a task title in ${S.dept}..." aria-label="Search students and tasks"><div id="qres"></div>`;
+    $('#sq').oninput=runSearch;
+  }
+  runSearch();
+}
+function runSearch(){
+  const q=norm($('#sq').value.trim()),R=$('#qres');
+  if(!q){R.innerHTML='<div class="meta" style="margin-top:8px">Type to find a student or a task, then open it to see details and edit feedback.</div>';return}
+  const sts=S.data.students.filter(x=>norm(x.name).includes(q)).slice(0,15);
+  const tks=S.data.tasks.filter(t=>t.department===S.dept&&(norm(t.title).includes(q)||norm(t.description).includes(q))).slice(0,15);
+  R.innerHTML=(sts.length?`<div class="meta" style="margin-top:10px"><b>Students</b></div><div class="res">${sts.map(x=>`<button class="btn ghost sm" data-ss="${x.id}"><bdi>${esc(x.name)}</bdi></button>`).join('')}</div>`:'')+
+    (tks.length?`<div class="meta" style="margin-top:6px"><b>Tasks</b></div><div class="res">${tks.map(t=>`<button class="btn ghost sm" data-st="${t.id}"><bdi>${esc(t.title)}</bdi></button>`).join('')}</div>`:'')||'<div class="meta" style="margin-top:8px">No matches. Older tasks need "Show older tasks" first.</div>';
+  R.querySelectorAll('[data-ss]').forEach(b=>b.onclick=()=>studentDetail(b.dataset.ss));
+  R.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>taskDetail(b.dataset.st));
+}
+function fbRows(tid,sid){
+  const l=S.data.feedback.filter(f=>f.taskId===tid&&f.studentId===sid).sort((a,b)=>b.date.localeCompare(a.date));
+  return l.length?l.map(f=>`<div class="item fb"><p>${esc(f.text)}</p><div class="meta"><bdi>${esc(f.author)}</bdi> \u00b7 ${fmt(f.date)} <button class="btn sm ghost" data-efb="${f.id}">Edit</button></div></div>`).join(''):'<div class="meta">No feedback yet.</div>';
+}
+function bindDetail(reopen){
+  const D=$('#dlgFields');
+  D.querySelectorAll('[data-efb]').forEach(b=>b.onclick=()=>{const f=S.data.feedback.find(x=>x.id===b.dataset.efb);if(f)form('Edit feedback',[{n:'text',l:'Feedback',t:'textarea',v:f.text}],v=>act('editFeedback',{id:f.id,text:v.text},'Feedback updated').then(reopen),reopen)});
+  D.querySelectorAll('[data-gfb]').forEach(b=>b.onclick=()=>{const[tid,sid]=b.dataset.gfb.split('|');form('Give feedback',[{n:'text',l:'Feedback',t:'textarea'}],v=>act('addFeedback',{taskId:tid,studentId:sid,text:v.text},'Feedback sent').then(reopen),reopen)});
+}
+function studentDetail(sid){
+  const s=S.data.students.find(x=>x.id===sid);if(!s)return;
+  const d=S.dept,tasks=S.data.tasks.filter(t=>t.department===d).sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  const done=tasks.filter(t=>stat(t.id,sid)==='Done').length,reopen=()=>studentDetail(sid);
+  info(`${s.name} \u00b7 ${d}`,`<div class="meta" style="margin-bottom:12px">${done} of ${tasks.length} tasks done</div>`+
+    (tasks.map(t=>{const st=stat(t.id,sid);return`<article class="item"><h3>${esc(t.title)}</h3><div class="meta"><span class="chip">Due ${fmt(t.deadline)}</span><span class="chip ${chipFor(st)}">${st}</span></div>${fbRows(t.id,sid)}<div class="acts"><button class="btn sm" data-gfb="${t.id}|${sid}">Give feedback</button></div></article>`}).join('')||'<div class="empty">No tasks in this department yet.</div>'),()=>bindDetail(reopen));
+}
+function taskDetail(tid){
+  const t=S.data.tasks.find(x=>x.id===tid);if(!t)return;
+  const studs=[...S.data.students].sort((a,b)=>a.name.localeCompare(b.name)),done=studs.filter(x=>stat(tid,x.id)==='Done').length,reopen=()=>taskDetail(tid);
+  info(t.title,`<div class="meta">${esc(t.department)} \u00b7 Due ${fmt(t.deadline)} \u00b7 ${done} of ${studs.length} done</div><p dir="auto">${esc(t.description)}</p>${linksHtml(t.links)}<div style="margin-top:12px"></div>`+
+    (studs.map(x=>{const st=stat(tid,x.id);return`<article class="item"><h3>${studLabel(tid,x)} <span class="chip ${chipFor(st)}">${st}</span></h3>${fbRows(tid,x.id)}<div class="acts"><button class="btn sm" data-gfb="${tid}|${x.id}">Give feedback</button></div></article>`}).join('')||'<div class="empty">No students yet.</div>'),()=>bindDetail(reopen));
+}
+
 /* ===== mixed Arabic/English text: each block takes its direction from its own first strong character ===== */
 function autoDir(){document.querySelectorAll('.item h3,.item p,.empty,#dlgTitle,dialog textarea,dialog input[type=text]').forEach(e=>e.setAttribute('dir','auto'))}
 /* read-only dialog */
-function info(title,html){
-  $('#dlgTitle').textContent=title;$('#dlgErr').textContent='';$('#dlgFields').innerHTML=html;
+function info(title,html,after){
+  $('#dlgTitle').textContent=title;$('#dlgErr').textContent='';$('#dlgFields').innerHTML=html;if(after)after();
   $('#dlgOk').hidden=true;$('#dlgCancel').textContent='Close';
   const dlg=$('#dlg');dlg.classList.add('wide');$('#dlgCancel').onclick=()=>dlg.close();$('#dlgForm').onsubmit=e=>{e.preventDefault();dlg.close()};
-  autoDir();dlg.showModal();
+  autoDir();if(!dlg.open)dlg.showModal();
 }
 $('#dlg').addEventListener('close',()=>{if(S.data&&S.token)render()});
 
 /* ===== reusable modal form ===== */
-function form(title,fields,onSubmit){
+function form(title,fields,onSubmit,onCancel){
   $('#dlgTitle').textContent=title;$('#dlgErr').textContent='';$('#dlgOk').hidden=false;$('#dlgCancel').textContent='Cancel';$('#dlg').classList.remove('wide');
   $('#dlgFields').innerHTML=fields.map(f=>`<label class="field">${f.l}${f.t==='textarea'?`<textarea name="${f.n}" ${f.req===false?'':'required'}>${esc(f.v||'')}</textarea>`:f.t==='select'?`<select name="${f.n}" required>${f.o.map(([v,l,c])=>`<option value="${esc(v)}"${c?` style="color:${c}"`:''}>${esc(l)}</option>`).join('')}</select>`:`<input name="${f.n}" type="${f.t||'text'}" value="${esc(f.v||'')}" required>`}</label>`).join('');
   const dlg=$('#dlg');
   autoDir();
-  $('#dlgCancel').onclick=()=>{dlg.close();refresh(true)};
+  $('#dlgCancel').onclick=()=>{dlg.close();onCancel?onCancel():refresh(true)};
   $('#dlgForm').onsubmit=e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.target));for(const k in v)if(typeof v[k]==='string')v[k]=v[k].trim();dlg.close();onSubmit(v)};
-  dlg.showModal();dlg.querySelector('input,textarea,select').focus();
+  if(!dlg.open)dlg.showModal();dlg.querySelector('input,textarea,select').focus();
 }
 
 /* ===== restore session on reload ===== */
